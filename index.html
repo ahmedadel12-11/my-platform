@@ -1,146 +1,85 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#392719">
-  <meta name="description" content="منصة مستر أحمد عادل التعليمية للتاريخ والجغرافيا">
-  <title>منصة مستر أحمد عادل</title>
-  <link rel="stylesheet" href="/styles.css">
+    <meta charset="UTF-8">
+    <title>تسجيل الدخول - المنصة التعليمية</title>
+    <style>
+        body { font-family: Tahoma, sans-serif; background: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); width: 300px; text-align: center; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        button { width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+        button:hover { background: #555; }
+        .toggle-btn { background: none; color: #007bff; border: none; cursor: pointer; margin-top: 10px; font-size: 14px; }
+    </style>
 </head>
 <body>
-<header class="topbar">
-  <div class="brand"><div class="brand-mark">أع</div><div><strong>منصة مستر أحمد عادل</strong><small>التاريخ والجغرافيا</small></div></div>
-  <div class="top-actions"><span id="whoami" class="muted"></span><button id="logout" class="btn btn-outline hidden">تسجيل الخروج</button></div>
-</header>
-<main class="shell">
-  <section id="login-view" class="login-layout">
-    <div class="welcome">
-      <span class="eyebrow">رحلتك نحو التفوق تبدأ هنا</span>
-      <h1>افهم التاريخ…<br><em>واقرأ الجغرافيا بثقة.</em></h1>
-      <p>مكان واحد لمتابعة الحصص والامتحانات والدرجات والإعلانات.</p>
-      <div class="subjects"><span>التاريخ</span><span>الجغرافيا</span><span>إعدادي وثانوي</span></div>
-    </div>
-    <div class="login-card">
-      <div class="tabs"><button class="tab active" data-login="student">دخول الطالب</button><button class="tab" data-login="teacher">دخول المدرس</button></div>
-      <form id="student-login" class="login-form">
-        <h2>أهلاً بك يا بطل</h2><p class="muted">اكتب كود الطالب والرقم السري الخاص بك.</p>
-        <label>كود الطالب<input name="code" inputmode="numeric" autocomplete="username" required maxlength="20" placeholder="مثال: 123456"></label>
-        <label>الرقم السري<input name="pin" inputmode="numeric" autocomplete="current-password" required maxlength="20" placeholder="الرقم السري"></label>
-        <button class="btn btn-primary full">دخول المنصة</button>
-      </form>
-      <form id="teacher-login" class="login-form hidden">
-        <h2>لوحة تحكم المدرس</h2><p class="muted">الدخول مخصص لإدارة المنصة.</p>
-        <label>كلمة المرور الإدارية<input name="password" type="password" autocomplete="current-password" required placeholder="كلمة المرور"></label>
-        <button class="btn btn-primary full">دخول لوحة التحكم</button>
-      </form>
-      <p id="login-error" class="error" role="alert"></p>
-      <small class="security-note">🔒 بيانات الدخول مشفّرة وتُدار من خلال اتصال آمن.</small>
-    </div>
-  </section>
 
-  <section id="admin-view" class="hidden">
-    <div class="page-heading"><div><span class="eyebrow">لوحة الإدارة</span><h1>أهلاً مستر أحمد</h1><p class="muted">إدارة الطلاب والحصص والنتائج من مكان واحد.</p></div><span class="gold-seal">AA</span></div>
-    <div id="stats" class="stats-grid"></div>
-    <div class="section-tabs" id="admin-tabs">
-      <button class="section-tab active" data-panel="students-panel">الطلاب</button>
-      <button class="section-tab" data-panel="groups-panel">المجموعات</button>
-      <button class="section-tab" data-panel="attendance-panel">الحضور والغياب</button>
-      <button class="section-tab" data-panel="exams-panel">الامتحانات والدرجات</button>
-      <button class="section-tab" data-panel="announcements-panel">الإعلانات</button>
-      <button class="section-tab" data-panel="reports-panel">التقارير</button>
-    </div>
+<div class="box">
+    <h2 id="form-title">تسجيل دخول المنصة</h2>
+    
+    <!-- نموذج الدخول أو التسجيل -->
+    <form id="authForm">
+        <input type="text" id="username" placeholder="اسم المستخدم أو الكود" required>
+        <input type="password" id="password" placeholder="كلمة السر" required>
+        <button type="submit" id="submitBtn">دخول المنصة</button>
+    </form>
 
-    <section id="students-panel" class="panel">
-      <div class="panel-head"><div><h2>إدارة الطلاب</h2><p class="muted">أضف الطلاب ووزّعهم على المجموعات.</p></div><button class="btn btn-primary" id="add-student-toggle">+ إضافة طالب</button></div>
-      <form id="student-form" class="form-grid hidden">
-        <label>اسم الطالب<input name="name" required maxlength="100"></label>
-        <label>المرحلة<select name="stage" required><option value="إعدادي">إعدادي</option><option value="ثانوي">ثانوي</option></select></label>
-        <label>المجموعة<select name="group_id" id="student-group"><option value="">بدون مجموعة</option></select></label>
-        <label>اسم ولي الأمر<input name="guardian_name" maxlength="100"></label>
-        <label>رقم ولي الأمر<input name="guardian_phone" inputmode="tel" maxlength="20"></label>
-        <div class="form-actions"><button class="btn btn-primary">حفظ الطالب</button><button type="button" class="btn btn-ghost" id="cancel-student">إلغاء</button></div>
-      </form>
-      <div id="new-credentials" class="credential-box hidden"></div>
-      <div class="toolbar"><input id="student-search" placeholder="ابحث باسم الطالب أو الكود…"><select id="student-stage-filter"><option value="">كل المراحل</option><option>إعدادي</option><option>ثانوي</option></select></div>
-      <div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الكود</th><th>المرحلة</th><th>المجموعة</th><th>الغياب</th><th>إجراءات</th></tr></thead><tbody id="students-table"></tbody></table></div>
-    </section>
+    <!-- زرار للتبديل بين التسجيل والدخول -->
+    <button class="toggle-btn" onclick="toggleMode()">ليس لديك حساب؟ اضغط هنا للتسجيل</button>
+</div>
 
-    <section id="groups-panel" class="panel hidden">
-      <div class="panel-head"><div><h2>المجموعات والحصص</h2><p class="muted">قسّم الطلاب حسب اليوم والموعد.</p></div></div>
-      <form id="group-form" class="form-grid compact">
-        <label>اسم المجموعة<input name="name" required placeholder="مثال: مجموعة السبت"></label>
-        <label>المرحلة<select name="stage"><option>إعدادي</option><option>ثانوي</option></select></label>
-        <label>أيام الحصص<input name="days" placeholder="السبت - الثلاثاء"></label>
-        <label>موعد الحصة<input name="time" placeholder="5:00 مساءً"></label>
-        <div class="form-actions"><button class="btn btn-primary">إنشاء مجموعة</button></div>
-      </form>
-      <div id="groups-list" class="cards-grid"></div>
-    </section>
+<script>
+    let isRegistering = false;
 
-    <section id="attendance-panel" class="panel hidden">
-      <div class="panel-head"><div><h2>تسجيل الحضور والغياب</h2><p class="muted">سجّل حالة كل طالب في تاريخ الحصة.</p></div></div>
-      <form id="attendance-form" class="form-grid compact">
-        <label>الطالب<select name="student_id" id="attendance-student" required></select></label>
-        <label>تاريخ الحصة<input name="date" type="date" required></label>
-        <label>الحالة<select name="status"><option value="present">حاضر</option><option value="absent">غائب</option><option value="late">متأخر</option></select></label>
-        <label>ملاحظة<input name="note" maxlength="250"></label>
-        <div class="form-actions"><button class="btn btn-primary">حفظ الحضور</button></div>
-      </form>
-      <div id="warnings-list"></div>
-      <p class="hint">يظهر تنبيه عند 3 حصص غياب، ويتحول إلى تحذير عند تجاوز 3 حصص. إخطار ولي الأمر يحتاج ربط خدمة رسائل خارجية.</p>
-    </section>
+    function toggleMode() {
+        isRegistering = !isRegistering;
+        document.getElementById("form-title").innerText = isRegistering ? "إنشاء حساب جديد" : "تسجيل دخول المنصة";
+        document.getElementById("submitBtn").innerText = isRegistering ? "حفظ وتسجيل" : "دخول المنصة";
+        document.querySelector(".toggle-btn").innerText = isRegistering ? "لديك حساب بالفعل؟ سجل دخولك" : "ليس لديك حساب؟ اضغط هنا للتسجيل";
+    }
 
-    <section id="exams-panel" class="panel hidden">
-      <div class="panel-head"><div><h2>الامتحانات ورصد الدرجات</h2><p class="muted">أضف امتحاناً ثم سجّل درجات الطلاب.</p></div></div>
-      <form id="exam-form" class="form-grid compact">
-        <label>اسم الامتحان<input name="title" required placeholder="امتحان الوحدة الأولى"></label>
-        <label>المرحلة<select name="stage"><option>إعدادي</option><option>ثانوي</option></select></label>
-        <label>الدرجة النهائية<input name="max_score" type="number" min="1" step="0.5" required></label>
-        <label>تاريخ الامتحان<input name="date" type="date" required></label>
-        <div class="form-actions"><button class="btn btn-primary">إضافة الامتحان</button></div>
-      </form>
-      <div class="score-entry">
-        <h3>إدخال / تعديل درجة</h3>
-        <form id="score-form" class="form-grid compact">
-          <label>الامتحان<select name="exam_id" id="score-exam" required></select></label>
-          <label>الطالب<select name="student_id" id="score-student" required></select></label>
-          <label>الدرجة<input name="score" type="number" min="0" step="0.5" required></label>
-          <div class="form-actions"><button class="btn btn-primary">حفظ الدرجة</button></div>
-        </form>
-      </div>
-      <div class="table-wrap"><table><thead><tr><th>الامتحان</th><th>المرحلة</th><th>النهاية</th><th>التاريخ</th></tr></thead><tbody id="exams-table"></tbody></table></div>
-      <div class="score-entry"><h3>آخر الدرجات المرصودة</h3><div id="score-results"></div></div>
-    </section>
+    document.getElementById("authForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        const user = document.getElementById("username").value.trim();
+        const pass = document.getElementById("password").value.trim();
 
-    <section id="announcements-panel" class="panel hidden">
-      <div class="panel-head"><div><h2>الإعلانات والتحذيرات</h2><p class="muted">انشر تنبيهاً يظهر للطلاب المستهدفين.</p></div></div>
-      <form id="announcement-form" class="form-grid">
-        <label>عنوان الإعلان<input name="title" required maxlength="100"></label>
-        <label>الفئة المستهدفة<select name="target_stage"><option value="الكل">كل الطلاب</option><option>إعدادي</option><option>ثانوي</option></select></label>
-        <label class="wide">نص الإعلان<textarea name="body" required maxlength="1500" rows="3"></textarea></label>
-        <div class="form-actions"><button class="btn btn-primary">نشر الإعلان</button></div>
-      </form>
-      <div id="announcements-list"></div>
-    </section>
+        // حساب المدير الخاص بك
+        const adminUser = "teacher";
+        const adminPass = "9999";
 
-    <section id="reports-panel" class="panel hidden">
-      <h2>التقارير والتصدير</h2><p class="muted">نزّل ملفات CSV التي تفتح مباشرة في Excel، أو اطبع الصفحة واحفظها PDF.</p>
-      <div class="report-actions"><a class="btn btn-primary" href="/api/admin/export?kind=scores">تنزيل كشف الدرجات CSV (Excel)</a><a class="btn btn-outline" href="/api/admin/export?kind=attendance">تنزيل سجل الحضور CSV (Excel)</a><button class="btn btn-ghost" id="print-report">طباعة / حفظ PDF</button></div>
-      <p class="hint">للحصول على PDF: اختر «طباعة / حفظ PDF» ثم «Save as PDF» من نافذة الطباعة.</p>
-    </section>
-  </section>
+        if (user === adminUser && pass === adminPass) {
+            alert("أهلاً بك يا أستاذنا، تم تسجيل الدخول كمدير للمنصة بنجاح!");
+            localStorage.setItem("currentStudent", "المدير (" + user + ")");
+            window.location.href = "index.html"; 
+            return;
+        }
 
-  <section id="student-view" class="hidden">
-    <div class="page-heading"><div><span class="eyebrow">مساحتك التعليمية</span><h1 id="student-greeting">أهلاً بك</h1><p class="muted" id="student-meta"></p></div><span class="gold-seal">AA</span></div>
-    <div id="student-warning"></div>
-    <div class="student-grid">
-      <section class="panel"><h2>درجاتي</h2><div id="my-scores"></div></section>
-      <section class="panel"><h2>الحضور والغياب</h2><div id="my-attendance"></div></section>
-      <section class="panel span-all"><h2>الإعلانات</h2><div id="my-announcements"></div></section>
-    </div>
-  </section>
-  <div id="toast" class="toast" role="status"></div>
-</main>
-<footer>© <span id="year"></span> منصة مستر أحمد عادل · التاريخ والجغرافيا</footer>
-<script src="/app.js" defer></script>
-</body></html>
+        // الحسابات المحفوظة للطلاب
+        let usersList = JSON.parse(localStorage.getItem("studentsList")) || [];
+
+        if (isRegistering) {
+            const userExists = usersList.find(s => s.username === user);
+            if (userExists || user === adminUser) {
+                alert("اسم المستخدم هذا محجوز أو موجود بالفعل، اختر اسم آخر.");
+                return;
+            }
+            usersList.push({ username: user, password: pass });
+            localStorage.setItem("studentsList", JSON.stringify(usersList));
+            
+            alert("تم إنشاء الحساب وحفظه بنجاح! يمكنك الآن تسجيل الدخول.");
+            toggleMode(); 
+        } else {
+            const foundUser = usersList.find(s => s.username === user && s.password === pass);
+            if (foundUser) {
+                alert("أهلاً بك، تم تسجيل الدخول بنجاح!");
+                localStorage.setItem("currentStudent", user);
+                window.location.href = "index.html"; 
+            } else {
+                alert("خطأ في اسم المستخدم أو كلمة السر!");
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
