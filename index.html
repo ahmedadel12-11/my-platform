@@ -1,22 +1,20 @@
 
-
-    
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>منصة مستر أحمد عادل التعليمية</title>
+
 <style>
 *{box-sizing:border-box}
 body{
 margin:0;
 font-family:Tahoma,Arial,sans-serif;
 background:linear-gradient(135deg,#10131c,#202b3d);
-color:#fff;
+color:white;
 min-height:100vh;
-padding:25px;
+padding:20px;
 display:flex;
 justify-content:center;
 align-items:center
@@ -25,7 +23,7 @@ align-items:center
 width:100%;
 max-width:460px;
 background:#1b2030;
-padding:30px;
+padding:28px;
 border-radius:20px;
 border:1px solid #424a5d;
 box-shadow:0 15px 50px #0007
@@ -35,7 +33,7 @@ h1{text-align:center;color:#f6a623}
 input{
 width:100%;
 padding:15px;
-margin:10px 0;
+margin:9px 0;
 border:1px solid #41495e;
 border-radius:10px;
 background:#111725;
@@ -66,15 +64,16 @@ border-right:4px solid #f6a623
 }
 </style>
 </head>
-<body>
 
+<body>
 <div class="container">
 
 <section id="login">
 <h1>مستر أحمد عادل</h1>
 <p class="subtitle">منصتك التعليمية للتاريخ والجغرافيا</p>
 
-<input id="email" type="email" placeholder="البريد الإلكتروني">
+<input id="fullName" type="text" placeholder="الاسم بالكامل">
+<input id="username" type="text" placeholder="اسم المستخدم">
 <input id="password" type="password" placeholder="كلمة المرور">
 
 <button id="loginBtn">تسجيل الدخول</button>
@@ -85,7 +84,7 @@ border-right:4px solid #f6a623
 
 <section id="dashboard" class="hidden">
 <h1>أهلاً بك في المنصة</h1>
-<p class="subtitle" id="studentEmail"></p>
+<p class="subtitle" id="studentName"></p>
 
 <div class="card">
 <h3>📚 التاريخ</h3>
@@ -126,29 +125,59 @@ const login = document.getElementById('login');
 const dashboard = document.getElementById('dashboard');
 const message = document.getElementById('message');
 
+function makeEmail(username){
+return username.toLowerCase() + '@students.example.com';
+}
+
 function showDashboard(user){
 login.classList.add('hidden');
 dashboard.classList.remove('hidden');
-document.getElementById('studentEmail').textContent =
-'البريد الإلكتروني: '+user.email;
+
+const name = user.user_metadata?.full_name ||
+user.user_metadata?.username || 'طالب';
+
+document.getElementById('studentName').textContent =
+'أهلاً بك يا ' + name;
 }
 
 document.getElementById('signupBtn').onclick =
 async function(){
 
-const email=document.getElementById('email').value.trim();
-const password=document.getElementById('password').value;
+const fullName =
+document.getElementById('fullName').value.trim();
 
-if(!email || password.length<6){
-message.textContent='أدخل البريد الإلكتروني وكلمة مرور لا تقل عن 6 أحرف';
+const username =
+document.getElementById('username').value.trim().toLowerCase();
+
+const password =
+document.getElementById('password').value;
+
+if(!fullName || !username || !password){
+message.textContent='من فضلك أكمل جميع البيانات';
+return;
+}
+
+if(!/^[a-z0-9_]{3,20}$/.test(username)){
+message.textContent='اسم المستخدم يجب أن يكون 3 إلى 20 حرفاً أو رقماً باللغة الإنجليزية';
+return;
+}
+
+if(password.length < 8){
+message.textContent='كلمة المرور يجب ألا تقل عن 8 أحرف';
 return;
 }
 
 message.textContent='جارٍ إنشاء الحساب...';
 
 const {data,error}=await supabase.auth.signUp({
-email:email,
-password:password
+email:makeEmail(username),
+password:password,
+options:{
+data:{
+full_name:fullName,
+username:username
+}
+}
 });
 
 if(error){
@@ -156,36 +185,47 @@ message.textContent='تعذر إنشاء الحساب: '+error.message;
 return;
 }
 
-message.textContent=data.session
-?'تم إنشاء الحساب بنجاح'
-:'تم إنشاء الحساب. راجع بريدك الإلكتروني لتأكيده إذا طُلب منك ذلك.';
-
-if(data.session) showDashboard(data.user);
+if(data.session){
+showDashboard(data.user);
+message.textContent='';
+}else{
+message.textContent=
+'تم إنشاء الحساب. يجب مراجعة إعداد تأكيد البريد الإلكتروني في Supabase قبل تسجيل الدخول.';
+}
 };
 
 document.getElementById('loginBtn').onclick =
 async function(){
 
-const email=document.getElementById('email').value.trim();
-const password=document.getElementById('password').value;
+const username =
+document.getElementById('username').value.trim().toLowerCase();
 
-if(!email || !password){
-message.textContent='اكتب البريد الإلكتروني وكلمة المرور';
+const password =
+document.getElementById('password').value;
+
+if(!username || !password){
+message.textContent='اكتب اسم المستخدم وكلمة المرور';
+return;
+}
+
+if(!/^[a-z0-9_]{3,20}$/.test(username)){
+message.textContent='اسم المستخدم غير صحيح';
 return;
 }
 
 message.textContent='جارٍ تسجيل الدخول...';
 
 const {data,error}=await supabase.auth.signInWithPassword({
-email:email,
+email:makeEmail(username),
 password:password
 });
 
 if(error){
-message.textContent='بيانات الدخول غير صحيحة أو حدث خطأ: '+error.message;
+message.textContent='اسم المستخدم أو كلمة المرور غير صحيحة';
 return;
 }
 
+message.textContent='';
 showDashboard(data.user);
 };
 
@@ -193,13 +233,17 @@ document.getElementById('logoutBtn').onclick =
 async function(){
 
 await supabase.auth.signOut();
+
 dashboard.classList.add('hidden');
 login.classList.remove('hidden');
+
+document.getElementById('password').value='';
 message.textContent='تم تسجيل الخروج';
 };
 
 async function checkSession(){
 const {data,error}=await supabase.auth.getSession();
+
 if(!error && data.session){
 showDashboard(data.session.user);
 }
