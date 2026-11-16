@@ -1,228 +1,212 @@
 
+
+    
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <title>المنصة التعليمية المتكاملة</title>
-    <style>
-        body { font-family: Tahoma, sans-serif; background: #f4f4f9; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }
-        .box { background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); width: 100%; max-width: 600px; box-sizing: border-box; }
-        input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
-        .btn { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 5px; font-weight: bold; }
-        .btn:hover { background: #0056b3; }
-        .btn-danger { background: #dc3545; }
-        .btn-success { background: #28a745; }
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
-        th, td { border: 1px solid #ddd; padding: 6px; text-align: center; }
-        th { background: #007bff; color: white; }
-        .warning { color: red; font-weight: bold; }
-        .hidden { display: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>منصة مستر أحمد عادل التعليمية</title>
+<style>
+*{box-sizing:border-box}
+body{
+margin:0;
+font-family:Tahoma,Arial,sans-serif;
+background:linear-gradient(135deg,#10131c,#202b3d);
+color:#fff;
+min-height:100vh;
+padding:25px;
+display:flex;
+justify-content:center;
+align-items:center
+}
+.container{
+width:100%;
+max-width:460px;
+background:#1b2030;
+padding:30px;
+border-radius:20px;
+border:1px solid #424a5d;
+box-shadow:0 15px 50px #0007
+}
+h1{text-align:center;color:#f6a623}
+.subtitle{text-align:center;color:#c4cad5;line-height:1.8}
+input{
+width:100%;
+padding:15px;
+margin:10px 0;
+border:1px solid #41495e;
+border-radius:10px;
+background:#111725;
+color:white;
+font-size:16px
+}
+button{
+width:100%;
+padding:15px;
+margin-top:12px;
+border:0;
+border-radius:10px;
+background:#f6a623;
+color:#171717;
+font-weight:bold;
+font-size:16px;
+cursor:pointer
+}
+.secondary{background:#354159;color:white}
+.hidden{display:none!important}
+#message{text-align:center;color:#ffc35c;line-height:1.8}
+.card{
+background:#283247;
+padding:20px;
+border-radius:14px;
+margin:15px 0;
+border-right:4px solid #f6a623
+}
+</style>
 </head>
 <body>
 
-<div class="box">
-    
-    <!-- شاشة تسجيل الدخول -->
-    <div id="loginScreen">
-        <h2 style="text-align: center;">تسجيل الدخول للمنصة</h2>
-        <input type="text" id="username" placeholder="اسم المستخدم (اكتب teacher للمدير)">
-        <input type="password" id="password" placeholder="كلمة السر (اكتب 9999 للمدير)">
-        <button class="btn" onclick="attemptLogin()">دخول المنصة</button>
-    </div>
+<div class="container">
 
-    <!-- لوحة تحكم المدير -->
-    <div id="adminScreen" class="hidden">
-        <h2>🛠️ لوحة تحكم المدير</h2>
-        <button class="btn btn-danger" onclick="logout()" style="width: auto; padding: 6px 15px; margin-bottom: 10px;">تسجيل الخروج</button>
-        
-        <div style="background: #f9f9f9; padding: 12px; border-radius: 5px; margin-bottom: 15px;">
-            <h4 style="margin: 0 0 8px 0;">إضافة طالب جديد:</h4>
-            <input type="text" id="newStudentName" placeholder="اسم الطالب الثلاثي">
-            <button class="btn btn-success" onclick="addStudent()">حفظ الطالب في المنصة</button>
-        </div>
+<section id="login">
+<h1>مستر أحمد عادل</h1>
+<p class="subtitle">منصتك التعليمية للتاريخ والجغرافيا</p>
 
-        <h4 style="margin-bottom: 5px;">سجل الطلاب والمتابعة والغياب:</h4>
-        <div style="overflow-x:auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>الطالب</th>
-                        <th>الغياب</th>
-                        <th>كويز</th>
-                        <th>امتحان</th>
-                        <th>التقدير</th>
-                        <th>حذف</th>
-                    </tr>
-                </thead>
-                <tbody id="studentsTableBody"></tbody>
-            </table>
-        </div>
-    </div>
+<input id="email" type="email" placeholder="البريد الإلكتروني">
+<input id="password" type="password" placeholder="كلمة المرور">
 
-    <!-- لوحة الطالب -->
-    <div id="studentScreen" class="hidden">
-        <h2 id="studentWelcome">مرحباً بك</h2>
-        <button class="btn btn-danger" onclick="logout()" style="width: auto; padding: 6px 15px;">تسجيل الخروج</button>
-        
-        <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; margin-top: 15px;">
-            <p><strong>عدد غياباتك:</strong> <span id="stdAbsences">0</span> <span id="stdWarning" class="warning"></span></p>
-            <p><strong>درجة الكويز:</strong> <span id="stdQuiz">0</span></p>
-            <p><strong>درجة الامتحان:</strong> <span id="stdExam">0</span></p>
-            <p><strong>التقدير العام:</strong> <span id="stdGrade" style="color:#007bff; font-weight:bold;">جيد</span></p>
-        </div>
-    </div>
+<button id="loginBtn">تسجيل الدخول</button>
+<button id="signupBtn" class="secondary">إنشاء حساب طالب جديد</button>
+
+<p id="message"></p>
+</section>
+
+<section id="dashboard" class="hidden">
+<h1>أهلاً بك في المنصة</h1>
+<p class="subtitle" id="studentEmail"></p>
+
+<div class="card">
+<h3>📚 التاريخ</h3>
+<p>قسم التاريخ والمراجعات التعليمية</p>
+</div>
+
+<div class="card">
+<h3>🌍 الجغرافيا</h3>
+<p>قسم الجغرافيا والمراجعات التعليمية</p>
+</div>
+
+<div class="card">
+<h3>📝 الامتحانات</h3>
+<p>الامتحانات والنتائج ستظهر هنا بعد إعدادها.</p>
+</div>
+
+<button id="logoutBtn">تسجيل الخروج</button>
+</section>
 
 </div>
 
-<script>
-    // إنشاء بيانات أولية لو مش موجودة
-    if (!localStorage.getItem("studentsList")) {
-        localStorage.setItem("studentsList", JSON.stringify([
-            { name: "أحمد علي", absences: 1, quiz: 85, exam: 90, grade: "ممتاز" },
-            { name: "محمد محمود", absences: 3, quiz: 60, exam: 65, grade: "مقبول" }
-        ]));
-    }
+<script type="module">
+import { createClient } from
+'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 
-    window.onload = function() {
-        let role = localStorage.getItem("userRole");
-        let user = localStorage.getItem("currentUser");
-        if (role === "admin") {
-            showAdminPanel();
-        } else if (role === "student" && user) {
-            showStudentPanel(user);
-        }
-    };
+const SUPABASE_URL =
+'https://vpppdppyuvpfawtvmyph.supabase.co';
 
-    function attemptLogin() {
-        let u = document.getElementById("username").value.trim();
-        let p = document.getElementById("password").value.trim();
+const SUPABASE_KEY =
+'sb_publishable_S_-TuxVqSsmLQmEMtL6IAA_oUXtEiM3';
 
-        if (!u || !p) {
-            alert("من فضلك اكتب اسم المستخدم وكلمة السر!");
-            return;
-        }
+const supabase = createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
 
-        // دخول المدير
-        if (u === "teacher" && p === "9999") {
-            localStorage.setItem("userRole", "admin");
-            localStorage.setItem("currentUser", "المدير");
-            showAdminPanel();
-            return;
-        }
+const login = document.getElementById('login');
+const dashboard = document.getElementById('dashboard');
+const message = document.getElementById('message');
 
-        // دخول الطالب (يجب أن يكون مسجل بواسطة المدير)
-        let students = JSON.parse(localStorage.getItem("studentsList")) || [];
-        let found = students.find(s => s.name === u);
+function showDashboard(user){
+login.classList.add('hidden');
+dashboard.classList.remove('hidden');
+document.getElementById('studentEmail').textContent =
+'البريد الإلكتروني: '+user.email;
+}
 
-        if (found) {
-            localStorage.setItem("userRole", "student");
-            localStorage.setItem("currentUser", u);
-            showStudentPanel(u);
-        } else {
-            alert("خطأ في البيانات أو أن اسم الطالب غير مسجل في المنصة!");
-        }
-    }
+document.getElementById('signupBtn').onclick =
+async function(){
 
-    function showAdminPanel() {
-        document.getElementById("loginScreen").classList.add("hidden");
-        document.getElementById("studentScreen").classList.add("hidden");
-        document.getElementById("adminScreen").classList.remove("hidden");
-        loadTable();
-    }
+const email=document.getElementById('email').value.trim();
+const password=document.getElementById('password').value;
 
-    function showStudentPanel(name) {
-        document.getElementById("loginScreen").classList.add("hidden");
-        document.getElementById("adminScreen").classList.add("hidden");
-        document.getElementById("studentScreen").classList.remove("hidden");
-        
-        document.getElementById("studentWelcome").innerText = "أهلاً بك يا بطل: " + name;
-        
-        let students = JSON.parse(localStorage.getItem("studentsList")) || [];
-        let s = students.find(item => item.name === name);
-        if (s) {
-            document.getElementById("stdAbsences").innerText = s.absences;
-            if (s.absences >= 3) {
-                document.getElementById("stdWarning").innerText = " (⚠️ تنبيه: لقد تجاوزت 3 غيبات!)";
-            } else {
-                document.getElementById("stdWarning").innerText = "";
-            }
-            document.getElementById("stdQuiz").innerText = s.quiz;
-            document.getElementById("stdExam").innerText = s.exam;
-            document.getElementById("stdGrade").innerText = s.grade;
-        }
-    }
+if(!email || password.length<6){
+message.textContent='أدخل البريد الإلكتروني وكلمة مرور لا تقل عن 6 أحرف';
+return;
+}
 
-    function loadTable() {
-        let students = JSON.parse(localStorage.getItem("studentsList")) || [];
-        let tbody = document.getElementById("studentsTableBody");
-        tbody.innerHTML = "";
+message.textContent='جارٍ إنشاء الحساب...';
 
-        students.forEach((s, index) => {
-            let tr = document.createElement("tr");
-            tr.innerHTML = `
-                <td>${s.name}</td>
-                <td>
-                    <input type="number" value="${s.absences}" min="0" style="width:45px; text-align:center;" onchange="updateData(${index}, 'absences', this.value)">
-                    ${s.absences >= 3 ? '<br><span class="warning" style="font-size:10px;">⚠️ إنذار غياب</span>' : ''}
-                </td>
-                <td><input type="number" value="${s.quiz}" style="width:50px; text-align:center;" onchange="updateData(${index}, 'quiz', this.value)"></td>
-                <td><input type="number" value="${s.exam}" style="width:50px; text-align:center;" onchange="updateData(${index}, 'exam', this.value)"></td>
-                <td>
-                    <select onchange="updateData(${index}, 'grade', this.value)" style="padding:2px;">
-                        <option value="ممتاز" ${s.grade === 'ممتاز' ? 'selected' : ''}>ممتاز</option>
-                        <option value="جيد جداً" ${s.grade === 'جيد جداً' ? 'selected' : ''}>جيد جداً</option>
-                        <option value="جيد" ${s.grade === 'جيد' ? 'selected' : ''}>جيد</option>
-                        <option value="مقبول" ${s.grade === 'مقبول' ? 'selected' : ''}>مقبول</option>
-                        <option value="ضعيف" ${s.grade === 'ضعيف' ? 'selected' : ''}>ضعيف</option>
-                    </select>
-                </td>
-                <td><button class="btn btn-danger" style="padding:2px 6px; font-size:11px;" onclick="deleteStudent(${index})">حذف</button></td>
-            `;
-            tbody.appendChild(tr);
-        });
-    }
+const {data,error}=await supabase.auth.signUp({
+email:email,
+password:password
+});
 
-    function addStudent() {
-        let input = document.getElementById("newStudentName");
-        let name = input.value.trim();
-        if (!name) {
-            alert("اكتب اسم الطالب من فضلك!");
-            return;
-        }
-        let students = JSON.parse(localStorage.getItem("studentsList")) || [];
-        students.push({ name: name, absences: 0, quiz: 0, exam: 0, grade: "جيد" });
-        localStorage.setItem("studentsList", JSON.stringify(students));
-        input.value = "";
-        loadTable();
-    }
+if(error){
+message.textContent='تعذر إنشاء الحساب: '+error.message;
+return;
+}
 
-    function updateData(index, field, value) {
-        let students = JSON.parse(localStorage.getItem("studentsList")) || [];
-        if (field === 'absences' || field === 'quiz' || field === 'exam') {
-            students[index][field] = Number(value);
-        } else {
-            students[index][field] = value;
-        }
-        localStorage.setItem("studentsList", JSON.stringify(students));
-        loadTable();
-    }
+message.textContent=data.session
+?'تم إنشاء الحساب بنجاح'
+:'تم إنشاء الحساب. راجع بريدك الإلكتروني لتأكيده إذا طُلب منك ذلك.';
 
-    function deleteStudent(index) {
-        if (confirm("هل أنت متأكد من حذف هذا الطالب؟")) {
-            let students = JSON.parse(localStorage.getItem("studentsList")) || [];
-            students.splice(index, 1);
-            localStorage.setItem("studentsList", JSON.stringify(students));
-            loadTable();
-        }
-    }
+if(data.session) showDashboard(data.user);
+};
 
-    function logout() {
-        localStorage.removeItem("userRole");
-        localStorage.removeItem("currentUser");
-        location.reload();
-    }
+document.getElementById('loginBtn').onclick =
+async function(){
+
+const email=document.getElementById('email').value.trim();
+const password=document.getElementById('password').value;
+
+if(!email || !password){
+message.textContent='اكتب البريد الإلكتروني وكلمة المرور';
+return;
+}
+
+message.textContent='جارٍ تسجيل الدخول...';
+
+const {data,error}=await supabase.auth.signInWithPassword({
+email:email,
+password:password
+});
+
+if(error){
+message.textContent='بيانات الدخول غير صحيحة أو حدث خطأ: '+error.message;
+return;
+}
+
+showDashboard(data.user);
+};
+
+document.getElementById('logoutBtn').onclick =
+async function(){
+
+await supabase.auth.signOut();
+dashboard.classList.add('hidden');
+login.classList.remove('hidden');
+message.textContent='تم تسجيل الخروج';
+};
+
+async function checkSession(){
+const {data,error}=await supabase.auth.getSession();
+if(!error && data.session){
+showDashboard(data.session.user);
+}
+}
+
+checkSession();
+
 </script>
-
 </body>
 </html>
