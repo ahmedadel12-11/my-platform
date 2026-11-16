@@ -1,84 +1,197 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>تسجيل الدخول - المنصة التعليمية</title>
+    <title>المنصة التعليمية المتكاملة</title>
     <style>
-        body { font-family: Tahoma, sans-serif; background: #f4f4f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .box { background: white; padding: 30px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); width: 300px; text-align: center; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #333; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
-        button:hover { background: #555; }
-        .toggle-btn { background: none; color: #007bff; border: none; cursor: pointer; margin-top: 10px; font-size: 14px; }
+        body { font-family: Tahoma, sans-serif; background: #f4f4f9; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0px 0px 10px rgba(0,0,0,0.1); }
+        input, select { width: 100%; padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; }
+        .btn { width: 100%; padding: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 5px; font-weight: bold; }
+        .btn:hover { background: #0056b3; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        th { background: #007bff; color: white; }
+        .warning { color: red; font-weight: bold; }
+        .card { background: #f9f9f9; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-<div class="box">
-    <h2 id="form-title">تسجيل دخول المنصة</h2>
-    
-    <!-- نموذج الدخول أو التسجيل -->
-    <form id="authForm">
-        <input type="text" id="username" placeholder="اسم المستخدم أو الكود" required>
-        <input type="password" id="password" placeholder="كلمة السر" required>
-        <button type="submit" id="submitBtn">دخول المنصة</button>
-    </form>
-
-    <!-- زرار للتبديل بين التسجيل والدخول -->
-    <button class="toggle-btn" onclick="toggleMode()">ليس لديك حساب؟ اضغط هنا للتسجيل</button>
+<div class="container" id="app">
+    <!-- سيتم تعبئة المحتوى ديناميكياً بواسطة JavaScript -->
 </div>
 
 <script>
-    let isRegistering = false;
-
-    function toggleMode() {
-        isRegistering = !isRegistering;
-        document.getElementById("form-title").innerText = isRegistering ? "إنشاء حساب جديد" : "تسجيل دخول المنصة";
-        document.getElementById("submitBtn").innerText = isRegistering ? "حفظ وتسجيل" : "دخول المنصة";
-        document.querySelector(".toggle-btn").innerText = isRegistering ? "لديك حساب بالفعل؟ سجل دخولك" : "ليس لديك حساب؟ اضغط هنا للتسجيل";
+    // تهيئة البيانات الافتراضية لو مش موجودة
+    if (!localStorage.getItem("studentsList")) {
+        localStorage.setItem("studentsList", JSON.stringify([
+            { name: "أحمد محمد", absences: 1, quiz: 85, exam: 90, grade: "ممتاز" },
+            { name: "محمود علي", absences: 3, quiz: 60, exam: 65, grade: "مقبول" }
+        ]));
     }
 
-    document.getElementById("authForm").addEventListener("submit", function(e) {
-        e.preventDefault();
-        const user = document.getElementById("username").value.trim();
-        const pass = document.getElementById("password").value.trim();
+    let currentUser = localStorage.getItem("currentUser") || null;
+    let userRole = localStorage.getItem("userRole") || null;
 
-        // حساب المدير الخاص بك
-        const adminUser = "teacher";
-        const adminPass = "9999";
+    function render() {
+        const app = document.getElementById("app");
+        
+        if (!currentUser) {
+            // شاشة تسجيل الدخول
+            app.innerHTML = `
+                <h2 style="text-align: center;">تسجيل الدخول للمنصة</h2>
+                <input type="text" id="username" placeholder="اسم المستخدم أو الكود">
+                <input type="password" id="password" placeholder="كلمة السر">
+                <button class="btn" onclick="login()">دخول المنصة</button>
+            `;
+        } else if (userRole === "admin") {
+            // لوحة تحكم المدير
+            let students = JSON.parse(localStorage.getItem("studentsList")) || [];
+            let tableRows = students.map((s, index) => `
+                <tr>
+                    <td>${s.name}</td>
+                    <td>
+                        <input type="number" value="${s.absences}" min="0" style="width:50px; text-align:center;" onchange="updateData(${index}, 'absences', this.value)">
+                        ${s.absences >= 3 ? '<br><span class="warning">⚠️ إنذار غياب!</span>' : ''}
+                    </td>
+                    <td><input type="number" value="${s.quiz}" style="width:60px; text-align:center;" onchange="updateData(${index}, 'quiz', this.value)"></td>
+                    <td><input type="number" value="${s.exam}" style="width:60px; text-align:center;" onchange="updateData(${index}, 'exam', this.value)"></td>
+                    <td>
+                        <select onchange="updateData(${index}, 'grade', this.value)">
+                            <option value="ممتاز" ${s.grade === 'ممتاز' ? 'selected' : ''}>ممتاز</option>
+                            <option value="جيد جداً" ${s.grade === 'جيد جداً' ? 'selected' : ''}>جيد جداً</option>
+                            <option value="جيد" ${s.grade === 'جيد' ? 'selected' : ''}>جيد</option>
+                            <option value="مقبول" ${s.grade === 'مقبول' ? 'selected' : ''}>مقبول</option>
+                            <option value="ضعيف" ${s.grade === 'ضعيف' ? 'selected' : ''}>ضعيف</option>
+                        </select>
+                    </td>
+                    <td><button class="btn btn-danger" style="padding: 5px; font-size: 12px;" onclick="deleteStudent(${index})">حذف</button></td>
+                </tr>
+            `).join('');
 
-        if (user === adminUser && pass === adminPass) {
-            alert("أهلاً بك يا أستاذنا، تم تسجيل الدخول كمدير للمنصة بنجاح!");
-            localStorage.setItem("currentStudent", "المدير (" + user + ")");
-            window.location.href = "index.html"; 
+            app.innerHTML = `
+                <h2>🛠️ لوحة تحكم المدير (الأستاذ)</h2>
+                <p>أهلاً بك، تتحكم في متابعة الطلاب والغياب والدرجات بالكامل.</p>
+                <button class="btn btn-danger" onclick="logout()">تسجيل الخروج</button>
+                
+                <div class="card" style="margin-top: 20px;">
+                    <h3>➕ إضافة طالب جديد</h3>
+                    <input type="text" id="newName" placeholder="اسم الطالب الكامل">
+                    <button class="btn btn-success" onclick="addStudent()">حفظ وإضافة الطالب</button>
+                </div>
+
+                <h3>📋 سجل متابعة الطلاب</h3>
+                <div style="overflow-x:auto;">
+                    <table>
+                        <tr>
+                            <th>الطالب</th>
+                            <th>الغياب</th>
+                            <th>كويزات</th>
+                            <th>امتحان</th>
+                            <th>التقدير</th>
+                            <th>إجراء</th>
+                        </tr>
+                        ${tableRows}
+                    </table>
+                </div>
+            `;
+        } else {
+            // لوحة الطالب
+            let students = JSON.parse(localStorage.getItem("studentsList")) || [];
+            let student = students.find(s => s.name === currentUser) || { absences: 0, quiz: 0, exam: 0, grade: "غير محدد" };
+            
+            app.innerHTML = `
+                <h2>مرحباً بك يا بطل: ${currentUser}</h2>
+                <button class="btn btn-danger" onclick="logout()">تسجيل الخروج</button>
+                
+                <div class="card" style="margin-top: 20px;">
+                    <h3>📊 تقرير مستواك الدراسي</h3>
+                    <p><strong>عدد مرات الغياب:</strong> ${student.absences} ${student.absences >= 3 ? '<span class="warning">(لديك إنذار لتجاوز 3 غيبات!)</span>' : ''}</p>
+                    <p><strong>درجة الكويزات:</strong> ${student.quiz} / 100</p>
+                    <p><strong>درجة الامتحان:</strong> ${student.exam} / 100</p>
+                    <p><strong>التقدير العام:</strong> <span style="color: #007bff; font-weight: bold;">${student.grade}</span></p>
+                </div>
+            `;
+        }
+    }
+
+    function login() {
+        const u = document.getElementById("username").value.trim();
+        const p = document.getElementById("password").value.trim();
+
+        if (u === "teacher" && p === "9999") {
+            currentUser = "المدير";
+            userRole = "admin";
+            localStorage.setItem("currentUser", currentUser);
+            localStorage.setItem("userRole", userRole);
+            render();
             return;
         }
 
-        // الحسابات المحفوظة للطلاب
-        let usersList = JSON.parse(localStorage.getItem("studentsList")) || [];
-
-        if (isRegistering) {
-            const userExists = usersList.find(s => s.username === user);
-            if (userExists || user === adminUser) {
-                alert("اسم المستخدم هذا محجوز أو موجود بالفعل، اختر اسم آخر.");
-                return;
-            }
-            usersList.push({ username: user, password: pass });
-            localStorage.setItem("studentsList", JSON.stringify(usersList));
-            
-            alert("تم إنشاء الحساب وحفظه بنجاح! يمكنك الآن تسجيل الدخول.");
-            toggleMode(); 
+        // البحث في الطلاب المسجلين
+        let students = JSON.parse(localStorage.getItem("studentsList")) || [];
+        let found = students.find(s => s.name === u);
+        
+        if (found) {
+            currentUser = u;
+            userRole = "student";
+            localStorage.setItem("currentUser", currentUser);
+            localStorage.setItem("userRole", userRole);
+            render();
         } else {
-            const foundUser = usersList.find(s => s.username === user && s.password === pass);
-            if (foundUser) {
-                alert("أهلاً بك، تم تسجيل الدخول بنجاح!");
-                localStorage.setItem("currentStudent", user);
-                window.location.href = "index.html"; 
-            } else {
-                alert("خطأ في اسم المستخدم أو كلمة السر!");
-            }
+            alert("خطأ في اسم المستخدم أو كلمة السر، أو أن الطالب غير مسجل من قبل المدير!");
         }
-    });
+    }
+
+    function addStudent() {
+        const name = document.getElementById("newName").value.trim();
+        if (!name) {
+            alert("من فضلك اكتب اسم الطالب!");
+            return;
+        }
+        let students = JSON.parse(localStorage.getItem("studentsList")) || [];
+        students.push({ name: name, absences: 0, quiz: 0, exam: 0, grade: "جيد" });
+        localStorage.setItem("studentsList", JSON.stringify(students));
+        document.getElementById("newName").value = "";
+        render();
+    }
+
+    function updateData(index, field, value) {
+        let students = JSON.parse(localStorage.getItem("studentsList")) || [];
+        if (field === 'absences' || field === 'quiz' || field === 'exam') {
+            students[index][field] = Number(value);
+        } else {
+            students[index][field] = value;
+        }
+        localStorage.setItem("studentsList", JSON.stringify(students));
+        render();
+    }
+
+    function deleteStudent(index) {
+        if (confirm("هل أنت متأكد من حذف هذا الطالب؟")) {
+            let students = JSON.parse(localStorage.getItem("studentsList")) || [];
+            students.splice(index, 1);
+            localStorage.setItem("studentsList", JSON.stringify(students));
+            render();
+        }
+    }
+
+    function logout() {
+        localStorage.removeItem("currentUser");
+        localStorage.removeItem("userRole");
+        currentUser = null;
+        userRole = null;
+        render();
+    }
+
+    // تشغيل التطبيق أول ما الصفحة تفتح
+    window.onload = render;
 </script>
 
 </body>
