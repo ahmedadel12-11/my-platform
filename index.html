@@ -277,7 +277,7 @@ async function getStudents(){
  return p.data||[];
 }
 
-/* صفحة الطلاب */
+/* صفحة الطلاب - تم إضافة زر تعديل البيانات */
 async function studentsPage(){
  if(!requireTeacher())return;
 
@@ -289,9 +289,12 @@ async function studentsPage(){
   <label>الصف الدراسي</label>
   <select id="studentGrade">
    <option value="">اختر الصف</option>
-   <option>أولى إعدادي</option><option>تانية إعدادي</option>
-   <option>تالتة إعدادي</option><option>أولى ثانوي</option>
-   <option>تانية ثانوي</option><option>تالتة ثانوي</option>
+   <option>أولى إعدادي</option>
+   <option>تانية إعدادي</option>
+   <option>تالتة إعدادي</option>
+   <option>أولى ثانوي</option>
+   <option>تانية ثانوي</option>
+   <option>تالتة ثانوي</option>
   </select>
   <button onclick="createStudent()">إنشاء حساب طالب</button>
   <div id="studentList">جار تحميل الطلاب...</div>
@@ -299,22 +302,115 @@ async function studentsPage(){
 
  try{
   const students=await getStudents();
+
   $("studentList").innerHTML=students.map(s=>`
    <div class="item">
     <b>${esc(s.full_name)}</b>
     <br>اسم المستخدم: ${esc(s.username)}
     <br>الصف: ${esc(s.grade||"غير محدد")}
     <br>
+    <button class="success"
+     onclick="editStudent('${esc(s.id)}')">
+     تعديل بيانات الطالب
+    </button>
     <button class="danger"
      onclick="deleteStudent('${esc(s.id)}','${esc(s.full_name)}')">
      حذف الطالب نهائيًا
     </button>
    </div>
   `).join("")||"<p>لا يوجد طلاب.</p>";
+
  }catch(e){
   $("studentList").innerHTML=errorBox(e);
  }
 }
+
+/* تعديل اسم الطالب والصف الدراسي */
+async function editStudent(studentId){
+ if(!requireTeacher())return;
+
+ try{
+  const {data:student,error}=await db.from("profiles")
+   .select("id,full_name,grade")
+   .eq("id",studentId)
+   .single();
+
+  if(error)throw error;
+
+  const newName=prompt(
+   "اكتب اسم الطالب بالكامل:",
+   student.full_name||""
+  );
+
+  if(newName===null)return;
+
+  const full_name=newName.trim();
+
+  if(!full_name){
+   alert("اسم الطالب لا يمكن أن يكون فارغًا.");
+   return;
+  }
+
+  const grades=[
+   "أولى إعدادي",
+   "تانية إعدادي",
+   "تالتة إعدادي",
+   "أولى ثانوي",
+   "تانية ثانوي",
+   "تالتة ثانوي"
+  ];
+
+  const currentGrade=grades.indexOf(
+   String(student.grade||"").trim()
+  );
+
+  const gradeChoice=prompt(
+   "اختر رقم الصف الدراسي:\n"+
+   "1- أولى إعدادي\n"+
+   "2- تانية إعدادي\n"+
+   "3- تالتة إعدادي\n"+
+   "4- أولى ثانوي\n"+
+   "5- تانية ثانوي\n"+
+   "6- تالتة ثانوي",
+   currentGrade>=0?String(currentGrade+1):""
+  );
+
+  if(gradeChoice===null)return;
+
+  const gradeIndex=Number(gradeChoice)-1;
+
+  if(!Number.isInteger(gradeIndex)||!grades[gradeIndex]){
+   alert("رقم الصف غير صحيح.");
+   return;
+  }
+
+  const {error:updateError}=await db.from("profiles")
+   .update({
+    full_name:full_name,
+    grade:grades[gradeIndex]
+   })
+   .eq("id",studentId);
+
+  if(updateError)throw updateError;
+
+  alert("تم تحديث بيانات الطالب بنجاح.");
+
+  await logActivity(
+   "تعديل بيانات طالب",
+   full_name+" - "+grades[gradeIndex]
+  );
+
+  await studentsPage();
+
+ }catch(e){
+  alert(
+   "تعذر تعديل بيانات الطالب:\n"+
+   (e.message||e)+
+   "\n\nقد تحتاج صلاحيات قاعدة البيانات إلى السماح للمدرس بتعديل بيانات الطلاب."
+  );
+ }
+}
+window.editStudent=editStudent;
 
 /* إنشاء طالب */
 async function createStudent(){
@@ -657,7 +753,7 @@ async function addQuestion(){
  examsPage();
 }
 
-/* امتحانات الطالب - تم تعديل فلترة الصف */
+/* امتحانات الطالب */
 async function studentExamsPage(){
  if(!requireStudent())return;
 
