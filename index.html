@@ -3,254 +3,262 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>منصة مستر أحمد عادل التعليمية</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>منصة مستر أحمد عادل</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box}
-body{
-margin:0;
-font-family:Tahoma,Arial,sans-serif;
-background:linear-gradient(135deg,#10131c,#202b3d);
-color:white;
-min-height:100vh;
-padding:20px;
-display:flex;
-justify-content:center;
-align-items:center
-}
-.container{
-width:100%;
-max-width:460px;
-background:#1b2030;
-padding:28px;
-border-radius:20px;
-border:1px solid #424a5d;
-box-shadow:0 15px 50px #0007
-}
-h1{text-align:center;color:#f6a623}
-.subtitle{text-align:center;color:#c4cad5;line-height:1.8}
-input{
-width:100%;
-padding:15px;
-margin:9px 0;
-border:1px solid #41495e;
-border-radius:10px;
-background:#111725;
-color:white;
-font-size:16px
-}
-button{
-width:100%;
-padding:15px;
-margin-top:12px;
-border:0;
-border-radius:10px;
-background:#f6a623;
-color:#171717;
-font-weight:bold;
-font-size:16px;
-cursor:pointer
-}
-.secondary{background:#354159;color:white}
+body{margin:0;background:#101522;color:white;font-family:Tahoma,Arial}
+header{background:#1c2638;padding:22px;text-align:center;border-bottom:3px solid #ff922e}
+header h1{margin:0;color:#ff922e}
+main{max-width:950px;margin:25px auto;padding:15px}
+.card{background:#1c2638;padding:20px;border-radius:15px;margin-bottom:18px}
+input,textarea,select{width:100%;padding:13px;margin:8px 0;border:1px solid #46536a;border-radius:8px;background:#111a29;color:white;font:inherit}
+button{background:#ff922e;color:#171717;padding:12px 18px;border:0;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px}
+nav{display:flex;flex-wrap:wrap;gap:5px}
+nav button{background:#29364c;color:white}
+.item{background:#26344a;padding:14px;margin:10px 0;border-radius:10px}
 .hidden{display:none!important}
-#message{text-align:center;color:#ffc35c;line-height:1.8}
-.card{
-background:#283247;
-padding:20px;
-border-radius:14px;
-margin:15px 0;
-border-right:4px solid #f6a623
-}
+.msg{padding:12px;background:#174b3c;border-radius:8px;margin:10px 0}
+.error{background:#642c36}
+label{display:block;margin-top:10px}
+h2{color:#ffad55}
 </style>
 </head>
-
 <body>
-<div class="container">
-
-<section id="login">
+<header>
 <h1>مستر أحمد عادل</h1>
-<p class="subtitle">منصتك التعليمية للتاريخ والجغرافيا</p>
-
-<input id="fullName" type="text" placeholder="الاسم بالكامل">
-<input id="username" type="text" placeholder="اسم المستخدم">
+<p>منصتك التعليمية للتاريخ والجغرافيا</p>
+</header>
+<main>
+<div id="login" class="card">
+<h2>تسجيل الدخول</h2>
+<div id="loginMsg"></div>
+<label>اسم المستخدم</label>
+<input id="username" placeholder="اسم المستخدم">
+<label>كلمة المرور</label>
 <input id="password" type="password" placeholder="كلمة المرور">
+<button onclick="login()">دخول المنصة</button>
+</div>
 
-<button id="loginBtn">تسجيل الدخول</button>
-<button id="signupBtn" class="secondary">إنشاء حساب طالب جديد</button>
-
-<p id="message"></p>
-</section>
-
-<section id="dashboard" class="hidden">
-<h1>أهلاً بك في المنصة</h1>
-<p class="subtitle" id="studentName"></p>
-
+<div id="dashboard" class="hidden">
 <div class="card">
-<h3>📚 التاريخ</h3>
-<p>قسم التاريخ والمراجعات التعليمية</p>
+<h2 id="welcome"></h2>
+<button onclick="logout()">تسجيل الخروج</button>
 </div>
-
-<div class="card">
-<h3>🌍 الجغرافيا</h3>
-<p>قسم الجغرافيا والمراجعات التعليمية</p>
+<nav id="menu"></nav>
+<div id="content" class="card"></div>
 </div>
+</main>
 
-<div class="card">
-<h3>📝 الامتحانات</h3>
-<p>الامتحانات والنتائج ستظهر هنا بعد إعدادها.</p>
-</div>
+<script>
+const SUPABASE_URL="https://vpppdppyuvpfawtvmyph.supabase.co";
+const SUPABASE_KEY="sb_publishable_S_-TuxVqSsmLQmEMtL6IAA_oUXtEiM3";
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+let user=null,role=null,profile=null;
 
-<button id="logoutBtn">تسجيل الخروج</button>
-</section>
-
-</div>
-
-<script type="module">
-import { createClient } from
-'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
-const SUPABASE_URL =
-'https://vpppdppyuvpfawtvmyph.supabase.co';
-
-const SUPABASE_KEY =
-'sb_publishable_S_-TuxVqSsmLQmEMtL6IAA_oUXtEiM3';
-
-const supabase = createClient(
-SUPABASE_URL,
-SUPABASE_KEY
-);
-
-const login = document.getElementById('login');
-const dashboard = document.getElementById('dashboard');
-const message = document.getElementById('message');
-
-function makeEmail(username){
-return username.toLowerCase() + '@students.example.com';
+function msg(id,text,error=false){
+let e=document.getElementById(id);
+e.className=error?"msg error":"msg";
+e.textContent=text;
 }
-
-function showDashboard(user){
-login.classList.add('hidden');
-dashboard.classList.remove('hidden');
-
-const name = user.user_metadata?.full_name ||
-user.user_metadata?.username || 'طالب';
-
-document.getElementById('studentName').textContent =
-'أهلاً بك يا ' + name;
+async function login(){
+let u=document.getElementById("username").value.trim().toLowerCase();
+let p=document.getElementById("password").value;
+if(!/^[a-z0-9._-]{3,32}$/.test(u)||!p){
+msg("loginMsg","اكتب اسم المستخدم وكلمة المرور بشكل صحيح",true);return;
 }
-
-document.getElementById('signupBtn').onclick =
-async function(){
-
-const fullName =
-document.getElementById('fullName').value.trim();
-
-const username =
-document.getElementById('username').value.trim().toLowerCase();
-
-const password =
-document.getElementById('password').value;
-
-if(!fullName || !username || !password){
-message.textContent='من فضلك أكمل جميع البيانات';
-return;
-}
-
-if(!/^[a-z0-9_]{3,20}$/.test(username)){
-message.textContent='اسم المستخدم يجب أن يكون 3 إلى 20 حرفاً أو رقماً باللغة الإنجليزية';
-return;
-}
-
-if(password.length < 8){
-message.textContent='كلمة المرور يجب ألا تقل عن 8 أحرف';
-return;
-}
-
-message.textContent='جارٍ إنشاء الحساب...';
-
-const {data,error}=await supabase.auth.signUp({
-email:makeEmail(username),
-password:password,
-options:{
-data:{
-full_name:fullName,
-username:username
-}
-}
+let {data,error}=await db.auth.signInWithPassword({
+email:u+"@students.example.com",password:p
 });
-
-if(error){
-message.textContent='تعذر إنشاء الحساب: '+error.message;
-return;
+if(error){msg("loginMsg","بيانات الدخول غير صحيحة: "+error.message,true);return;}
+await start(data.user);
 }
-
-if(data.session){
-showDashboard(data.user);
-message.textContent='';
-}else{
-message.textContent=
-'تم إنشاء الحساب. يجب مراجعة إعداد تأكيد البريد الإلكتروني في Supabase قبل تسجيل الدخول.';
+async function start(authUser){
+user=authUser;
+let r=await db.from("user_roles").select("role").eq("user_id",user.id).maybeSingle();
+if(r.error||!r.data){
+await db.auth.signOut();msg("loginMsg","الحساب غير مفعل أو لا توجد صلاحية",true);return;
 }
-};
-
-document.getElementById('loginBtn').onclick =
-async function(){
-
-const username =
-document.getElementById('username').value.trim().toLowerCase();
-
-const password =
-document.getElementById('password').value;
-
-if(!username || !password){
-message.textContent='اكتب اسم المستخدم وكلمة المرور';
-return;
+role=r.data.role;
+let pr=await db.from("profiles").select("*").eq("id",user.id).maybeSingle();
+profile=pr.data;
+document.getElementById("login").classList.add("hidden");
+document.getElementById("dashboard").classList.remove("hidden");
+document.getElementById("welcome").textContent="أهلاً بك "+(profile?.full_name||"في المنصة");
+buildMenu();
+home();
 }
-
-if(!/^[a-z0-9_]{3,20}$/.test(username)){
-message.textContent='اسم المستخدم غير صحيح';
-return;
+function buildMenu(){
+let items=role==="teacher"?
+[["الرئيسية","home"],["الطلاب","students"],["الدروس","lessons"],["الحضور والغياب","attendance"],["الامتحانات","exams"],["الإعلانات","announcements"],["النتائج","results"]]:
+[["الرئيسية","home"],["الدروس","lessons"],["الامتحانات","studentExams"],["حضوري وإنذاراتي","myAttendance"],["نتائجي","myResults"],["الإعلانات","announcements"]];
+document.getElementById("menu").innerHTML=items.map(x=>
+`<button onclick="openPage('${x[1]}')">${x[0]}</button>`).join("");
 }
-
-message.textContent='جارٍ تسجيل الدخول...';
-
-const {data,error}=await supabase.auth.signInWithPassword({
-email:makeEmail(username),
-password:password
+function home(){
+document.getElementById("content").innerHTML=
+"<h2>أهلاً بك في منصة مستر أحمد عادل</h2><p>التاريخ والجغرافيا والمراجعات والامتحانات.</p>";
+}
+function openPage(page){
+if(page==="home")return home();
+if(page==="students"&&role==="teacher")return studentsPage();
+if(page==="lessons")return lessonsPage();
+if(page==="attendance"&&role==="teacher")return attendancePage();
+if(page==="exams"&&role==="teacher")return examsPage();
+if(page==="studentExams"&&role==="student")return studentExamsPage();
+if(page==="announcements")return announcementsPage();
+if(page==="results"&&role==="teacher")return resultsPage();
+if(page==="myResults"&&role==="student")return myResultsPage();
+if(page==="myAttendance"&&role==="student")return myAttendancePage();
+home();
+}
+async function studentsPage(){
+let c=document.getElementById("content");
+c.innerHTML=`<h2>إدارة الطلاب</h2>
+<input id="studentName" placeholder="اسم الطالب بالكامل">
+<input id="studentUsername" placeholder="اسم المستخدم بالإنجليزية">
+<input id="studentPassword" type="password" placeholder="كلمة المرور">
+<button onclick="createStudent()">إنشاء حساب طالب</button>
+<div id="studentList"></div>`;
+let r=await db.from("profiles").select("full_name,username").order("created_at",{ascending:false});
+if(r.error){c.innerHTML+="<p>"+r.error.message+"</p>";return;}
+document.getElementById("studentList").innerHTML=(r.data||[]).map(s=>
+`<div class="item">${s.full_name} — ${s.username||""}</div>`).join("");
+}
+async function createStudent(){
+let full_name=document.getElementById("studentName").value.trim();
+let username=document.getElementById("studentUsername").value.trim().toLowerCase();
+let password=document.getElementById("studentPassword").value;
+if(!full_name||!/^[a-z0-9._-]{3,32}$/.test(username)||password.length<8){
+alert("راجع الاسم واسم المستخدم وكلمة المرور (8 أحرف على الأقل)");return;
+}
+let {data:{session}}=await db.auth.getSession();
+let res=await fetch(SUPABASE_URL+"/functions/v1/create-student",{
+method:"POST",
+headers:{"Content-Type":"application/json","Authorization":"Bearer "+session.access_token,"apikey":SUPABASE_KEY},
+body:JSON.stringify({full_name,username,password})
 });
-
-if(error){
-message.textContent='اسم المستخدم أو كلمة المرور غير صحيحة';
-return;
+let out=await res.json();
+if(!res.ok){alert(out.error||"فشل إنشاء الطالب");return;}
+alert("تم إنشاء حساب الطالب: "+username);
+studentsPage();
 }
-
-message.textContent='';
-showDashboard(data.user);
+async function lessonsPage(){
+let c=document.getElementById("content");
+let form=role==="teacher"?`<h2>إضافة درس</h2>
+<input id="ltitle" placeholder="عنوان الدرس">
+<select id="subject"><option value="history">التاريخ</option><option value="geography">الجغرافيا</option></select>
+<input id="grade" placeholder="الصف الدراسي">
+<input id="video" placeholder="رابط الفيديو">
+<input id="file" placeholder="رابط الملف">
+<textarea id="details" placeholder="محتوى الدرس"></textarea>
+<button onclick="addLesson()">نشر الدرس</button>`:"";
+c.innerHTML=form+"<h2>الدروس التعليمية</h2><div id='lessonList'></div>";
+let r=await db.from("lessons").select("*").order("created_at",{ascending:false});
+if(r.error){document.getElementById("lessonList").textContent=r.error.message;return;}
+document.getElementById("lessonList").innerHTML=(r.data||[]).map(x=>
+`<div class="item"><h3>${x.title}</h3><p>${x.subject==="history"?"التاريخ":"الجغرافيا"} — ${x.grade||""}</p><p>${x.content||""}</p>${x.video_url?`<a href="${x.video_url}" target="_blank">مشاهدة الفيديو</a>`:""} ${x.file_url?`<a href="${x.file_url}" target="_blank">فتح الملف</a>`:""}</div>`).join("");
+}
+async function addLesson(){
+let row={title:ltitle.value.trim(),subject:subject.value,grade:grade.value,content:details.value,video_url:video.value||null,file_url:file.value||null};
+if(!row.title){alert("اكتب عنوان الدرس");return;}
+let r=await db.from("lessons").insert(row);
+if(r.error){alert(r.error.message);return;}
+lessonsPage();
+}
+async function attendancePage(){
+let c=document.getElementById("content");
+let s=await db.from("profiles").select("id,full_name").order("full_name");
+if(s.error){c.textContent=s.error.message;return;}
+c.innerHTML=`<h2>تسجيل الحضور والغياب</h2>
+<select id="attStudent">${(s.data||[]).map(x=>`<option value="${x.id}">${x.full_name}</option>`).join("")}</select>
+<input id="attDate" type="date">
+<select id="attStatus"><option value="present">حاضر</option><option value="absent">غائب</option><option value="excused">بعذر</option></select>
+<button onclick="saveAttendance()">حفظ</button><div id="attList"></div>`;
+}
+async function saveAttendance(){
+let r=await db.from("attendance").insert({student_id:attStudent.value,lesson_date:attDate.value,status:attStatus.value});
+if(r.error){alert(r.error.message);return;}
+alert("تم تسجيل الحضور");
+}
+async function examsPage(){
+let c=document.getElementById("content");
+let r=await db.from("exams").select("*").order("created_at",{ascending:false});
+let options=(r.data||[]).map(x=>`<option value="${x.id}">${x.title}</option>`).join("");
+c.innerHTML=`<h2>إنشاء امتحان</h2>
+<input id="examTitle" placeholder="اسم الامتحان">
+<select id="examSubject"><option value="history">التاريخ</option><option value="geography">الجغرافيا</option></select>
+<input id="examGrade" placeholder="الصف">
+<button onclick="addExam()">إنشاء الامتحان</button>
+<hr><h2>إضافة سؤال</h2><select id="examSelect">${options}</select>
+<textarea id="qText" placeholder="السؤال"></textarea>
+<input id="o0" placeholder="الاختيار الأول"><input id="o1" placeholder="الاختيار الثاني">
+<input id="o2" placeholder="الاختيار الثالث"><input id="o3" placeholder="الاختيار الرابع">
+<select id="correct"><option value="0">الأول</option><option value="1">الثاني</option><option value="2">الثالث</option><option value="3">الرابع</option></select>
+<button onclick="addQuestion()">إضافة السؤال</button>
+<div id="examList"></div>`;
+document.getElementById("examList").innerHTML=(r.data||[]).map(x=>`<div class="item">${x.title}</div>`).join("");
+}
+async function addExam(){
+let r=await db.from("exams").insert({title:examTitle.value,subject:examSubject.value,grade:examGrade.value,is_active:true});
+if(r.error){alert(r.error.message);return;}examsPage();
+}
+async function addQuestion(){
+let opts=[o0.value,o1.value,o2.value,o3.value];
+let r=await db.from("questions").insert({exam_id:Number(examSelect.value),question_text:qText.value,options:opts,correct_answer:correct.value});
+if(r.error){alert(r.error.message);return;}alert("تمت إضافة السؤال");
+}
+async function studentExamsPage(){
+let c=document.getElementById("content");
+let r=await db.from("exams").select("*").eq("is_active",true);
+if(r.error){c.textContent=r.error.message;return;}
+c.innerHTML="<h2>الامتحانات المتاحة</h2>"+(r.data||[]).map(x=>`<div class="item">${x.title}<button onclick="startExam(${x.id})">ابدأ</button></div>`).join("");
+}
+async function startExam(id){
+let r=await db.from("student_questions").select("*").eq("exam_id",id);
+if(r.error){alert(r.error.message);return;}
+let qs=r.data||[];
+if(!qs.length){alert("لا توجد أسئلة");return;}
+let c=document.getElementById("content");
+c.innerHTML=`<h2>الامتحان</h2><form id="examForm">${qs.map((q,i)=>`<div class="item"><b>${i+1}. ${q.question_text}</b>${q.options.map((o,j)=>`<label><input style="width:auto" type="radio" name="q${q.id}" value="${j}" required>${o}</label>`).join("")}</div>`).join("")}<button>تسليم الامتحان</button></form>`;
+document.getElementById("examForm").onsubmit=async e=>{
+e.preventDefault();let answers={};qs.forEach(q=>answers[q.id]=new FormData(e.target).get("q"+q.id));
+let result=await db.rpc("submit_exam",{p_exam_id:id,p_answers:answers});
+if(result.error){alert(result.error.message);return;}
+alert("تم التسليم. درجتك: "+result.data+"%");
 };
-
-document.getElementById('logoutBtn').onclick =
-async function(){
-
-await supabase.auth.signOut();
-
-dashboard.classList.add('hidden');
-login.classList.remove('hidden');
-
-document.getElementById('password').value='';
-message.textContent='تم تسجيل الخروج';
-};
-
-async function checkSession(){
-const {data,error}=await supabase.auth.getSession();
-
-if(!error && data.session){
-showDashboard(data.session.user);
 }
+async function announcementsPage(){
+let c=document.getElementById("content");
+if(role==="teacher")c.innerHTML=`<h2>نشر إعلان</h2><input id="annTitle" placeholder="عنوان الإعلان"><textarea id="annMessage" placeholder="نص الإعلان"></textarea><button onclick="publishAnnouncement()">نشر</button><div id="annList"></div>`;
+else c.innerHTML="<h2>الإعلانات</h2><div id='annList'></div>";
+let r=await db.from("announcements").select("*").order("created_at",{ascending:false});
+if(r.error){c.textContent=r.error.message;return;}
+document.getElementById("annList").innerHTML=(r.data||[]).map(x=>`<div class="item"><h3>${x.title}</h3><p>${x.message}</p></div>`).join("");
 }
-
-checkSession();
-
+async function publishAnnouncement(){
+let r=await db.from("announcements").insert({title:annTitle.value,message:annMessage.value});
+if(r.error){alert(r.error.message);return;}announcementsPage();
+}
+async function resultsPage(){
+let c=document.getElementById("content");
+let r=await db.from("exam_results").select("*,profiles(full_name),exams(title)").order("submitted_at",{ascending:false});
+if(r.error){c.textContent=r.error.message;return;}
+c.innerHTML="<h2>نتائج الطلاب</h2>"+(r.data||[]).map(x=>`<div class="item">${x.profiles?.full_name||"طالب"} — ${x.exams?.title||"امتحان"} — ${x.score}%</div>`).join("");
+}
+async function myResultsPage(){
+let r=await db.from("exam_results").select("*,exams(title)").eq("student_id",user.id);
+document.getElementById("content").innerHTML="<h2>نتائجي</h2>"+(r.data||[]).map(x=>`<div class="item">${x.exams?.title||"امتحان"} — ${x.score}%</div>`).join("");
+}
+async function myAttendancePage(){
+let c=document.getElementById("content");
+let a=await db.from("attendance").select("*").eq("student_id",user.id).order("lesson_date",{ascending:false});
+let w=await db.from("absence_warnings").select("*").eq("student_id",user.id).order("warning_number");
+c.innerHTML="<h2>سجل الحضور</h2>"+(a.data||[]).map(x=>`<div class="item">${x.lesson_date} — ${x.status==="absent"?"غائب":x.status==="present"?"حاضر":"بعذر"}</div>`).join("")+"<h2>إنذارات الغياب</h2>"+(w.data||[]).map(x=>`<div class="item">${x.warning_message}</div>`).join("");
+}
+async function logout(){await db.auth.signOut();location.reload();}
+db.auth.getSession().then(({data})=>{if(data.session)start(data.session.user);});
 </script>
 </body>
 </html>
