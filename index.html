@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -65,7 +64,6 @@ td,th{padding:10px;border-bottom:1px solid #46536a;text-align:right}
 <script>
 "use strict";
 
-/* إعداد الاتصال */
 const SUPABASE_URL="https://vpppdppyuvpfawtvmyph.supabase.co";
 const SUPABASE_KEY="sb_publishable_S_-TuxVqSsmLQmEMtL6IAA_oUXtEiM3";
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
@@ -81,15 +79,15 @@ function esc(v){
 
 function setContent(html){$("content").innerHTML=html;}
 
+function errorBox(error){
+ return `<div class="msg error">${esc(error?.message||error||"حدث خطأ")}</div>`;
+}
+
 function message(id,text,error=false){
  const el=$(id);
  if(!el)return;
  el.className=error?"msg error":"msg";
  el.textContent=text;
-}
-
-function errorBox(error){
- return `<div class="msg error">${esc(error?.message||error||"حدث خطأ")}</div>`;
 }
 
 function isTeacher(){return role==="teacher";}
@@ -110,7 +108,6 @@ function requireStudent(){
  return true;
 }
 
-/* تسجيل النشاط */
 async function logActivity(activity,details=""){
  if(!user)return;
  const {error}=await db.from("activity_logs").insert({
@@ -129,7 +126,6 @@ async function login(){
   return;
  }
 
- /* حساب المدرس الحالي */
  const email=u==="mrahmedadel"
   ?"boda@students.example.com"
   :u+"@students.example.com";
@@ -272,7 +268,7 @@ function openPage(page){
  else home();
 }
 
-/* الطلاب */
+/* إدارة الطلاب */
 async function getStudents(){
  const r=await db.from("user_roles")
   .select("user_id")
@@ -284,7 +280,7 @@ async function getStudents(){
  if(!ids.length)return [];
 
  const p=await db.from("profiles")
-  .select("id,full_name,username")
+  .select("id,full_name,username,grade")
   .in("id",ids)
   .order("full_name");
 
@@ -300,6 +296,16 @@ async function studentsPage(){
   <input id="studentName" placeholder="اسم الطالب بالكامل">
   <input id="studentUsername" placeholder="اسم المستخدم بالإنجليزية">
   <input id="studentPassword" type="password" placeholder="كلمة المرور">
+  <label>الصف الدراسي</label>
+  <select id="studentGrade">
+   <option value="">اختر الصف</option>
+   <option>أولى إعدادي</option>
+   <option>تانية إعدادي</option>
+   <option>تالتة إعدادي</option>
+   <option>أولى ثانوي</option>
+   <option>تانية ثانوي</option>
+   <option>تالتة ثانوي</option>
+  </select>
   <button onclick="createStudent()">إنشاء حساب طالب</button>
   <div id="studentList"></div>
  `);
@@ -308,7 +314,10 @@ async function studentsPage(){
   const students=await getStudents();
 
   $("studentList").innerHTML=students.map(s=>
-   `<div class="item">${esc(s.full_name)} — ${esc(s.username)}</div>`
+   `<div class="item">
+    ${esc(s.full_name)} — ${esc(s.username)}
+    <br>الصف: ${esc(s.grade||"غير محدد")}
+   </div>`
   ).join("")||"<p>لا يوجد طلاب.</p>";
 
  }catch(e){
@@ -322,9 +331,10 @@ async function createStudent(){
  const full_name=$("studentName").value.trim();
  const username=$("studentUsername").value.trim().toLowerCase();
  const password=$("studentPassword").value;
+ const grade=$("studentGrade").value;
 
- if(!full_name||!/^[a-z0-9._-]{3,32}$/.test(username)||password.length<8){
-  alert("راجع الاسم واسم المستخدم وكلمة المرور (8 أحرف على الأقل).");
+ if(!full_name||!grade||!/^[a-z0-9._-]{3,32}$/.test(username)||password.length<8){
+  alert("راجع الاسم واسم المستخدم والصف وكلمة المرور.");
   return;
  }
 
@@ -343,7 +353,7 @@ async function createStudent(){
     "Authorization":"Bearer "+session.access_token,
     "apikey":SUPABASE_KEY
    },
-   body:JSON.stringify({full_name,username,password})
+   body:JSON.stringify({full_name,username,password,grade})
   });
 
   const out=await res.json();
@@ -391,7 +401,12 @@ async function lessonsPage(){
   return;
  }
 
- $("lessonList").innerHTML=(r.data||[]).map(x=>`
+ let lessons=r.data||[];
+ if(!isTeacher()&&profile?.grade){
+  lessons=lessons.filter(x=>x.grade===profile.grade);
+ }
+
+ $("lessonList").innerHTML=lessons.map(x=>`
   <div class="item">
    <h3>${esc(x.title)}</h3>
    <p>${x.subject==="history"?"التاريخ":"الجغرافيا"} — ${esc(x.grade)}</p>
@@ -414,8 +429,8 @@ async function addLesson(){
   file_url:$("file").value.trim()||null
  };
 
- if(!row.title){
-  alert("اكتب عنوان الدرس.");
+ if(!row.title||!row.grade){
+  alert("اكتب عنوان الدرس والصف.");
   return;
  }
 
@@ -527,7 +542,6 @@ async function saveAttendance(){
   return;
  }
 
- /* إنذار واحد فقط عند الوصول إلى 3 مرات غياب */
  if(status==="absent"){
   const count=await db.from("attendance")
    .select("id",{count:"exact",head:true})
@@ -535,7 +549,7 @@ async function saveAttendance(){
    .eq("status","absent");
 
   if(count.error){
-   alert("تم تسجيل الغياب، لكن تعذر حساب مرات الغياب: "+count.error.message);
+   alert("تم تسجيل الغياب، لكن تعذر حساب مرات الغياب.");
   }else if((count.count||0)>=3){
 
    const oldWarning=await db.from("absence_warnings")
@@ -552,7 +566,7 @@ async function saveAttendance(){
     });
 
     if(warning.error){
-     alert("تم تسجيل الغياب، لكن تعذر إنشاء الإنذار: "+warning.error.message);
+     alert("تم تسجيل الغياب، لكن تعذر إنشاء الإنذار.");
     }
    }
   }
@@ -563,7 +577,7 @@ async function saveAttendance(){
  attendancePage();
 }
 
-/* الامتحانات وإضافة الأسئلة */
+/* الامتحانات */
 async function examsPage(){
  if(!requireTeacher())return;
 
@@ -583,7 +597,21 @@ async function examsPage(){
    <option value="history">التاريخ</option>
    <option value="geography">الجغرافيا</option>
   </select>
-  <input id="examGrade" placeholder="الصف">
+  <input id="examGrade" placeholder="الصف" value="${esc(profile?.grade||"")}">
+
+  <label>مدة الامتحان بالدقائق</label>
+  <input id="examDuration" type="number" min="1" max="300" value="30">
+
+  <label>ظهور النتيجة</label>
+  <select id="resultVisibility">
+   <option value="immediate">فور التسليم</option>
+   <option value="manual">بعد سماح المدرس</option>
+   <option value="scheduled">في موعد محدد</option>
+  </select>
+
+  <label>موعد ظهور النتيجة</label>
+  <input id="resultReleaseAt" type="datetime-local">
+
   <button onclick="addExam()">إنشاء الامتحان</button>
 
   <hr>
@@ -593,23 +621,39 @@ async function examsPage(){
     `<option value="${x.id}">${esc(x.title)}</option>`
    ).join("")}
   </select>
+
   <textarea id="qText" placeholder="السؤال"></textarea>
-  <input id="o0" placeholder="الاختيار الأول">
-  <input id="o1" placeholder="الاختيار الثاني">
-  <input id="o2" placeholder="الاختيار الثالث">
-  <input id="o3" placeholder="الاختيار الرابع">
-  <select id="correct">
-   <option value="0">الأول</option>
-   <option value="1">الثاني</option>
-   <option value="2">الثالث</option>
-   <option value="3">الرابع</option>
+
+  <label>نوع السؤال</label>
+  <select id="qType" onchange="toggleQuestionFields()">
+   <option value="mcq">اختيار من متعدد</option>
+   <option value="true_false">صح أو خطأ</option>
+   <option value="essay">مقالي</option>
   </select>
+
+  <label>درجة السؤال</label>
+  <input id="qMarks" type="number" min="0.5" step="0.5" value="1">
+
+  <div id="objectiveFields">
+   <input id="o0" placeholder="الاختيار الأول">
+   <input id="o1" placeholder="الاختيار الثاني">
+   <input id="o2" placeholder="الاختيار الثالث">
+   <input id="o3" placeholder="الاختيار الرابع">
+   <select id="correct">
+    <option value="0">الأول</option>
+    <option value="1">الثاني</option>
+    <option value="2">الثالث</option>
+    <option value="3">الرابع</option>
+   </select>
+  </div>
+
+  <textarea id="modelAnswer" placeholder="الإجابة النموذجية / ملاحظات التصحيح"></textarea>
   <button onclick="addQuestion()">إضافة السؤال</button>
 
   <hr>
   <h2>الامتحانات</h2>
   ${(r.data||[]).map(x=>
-   `<div class="item">${esc(x.title)} — ${x.is_active?"نشط":"غير نشط"}</div>`
+   `<div class="item">${esc(x.title)} — ${x.is_active?"نشط":"غير نشط"} — ${esc(x.grade||"")}</div>`
   ).join("")}
  `);
 }
@@ -618,16 +662,20 @@ async function addExam(){
  if(!requireTeacher())return;
 
  const title=$("examTitle").value.trim();
+ const grade=$("examGrade").value.trim();
 
- if(!title){
-  alert("اكتب اسم الامتحان.");
+ if(!title||!grade){
+  alert("اكتب اسم الامتحان والصف.");
   return;
  }
 
  const r=await db.from("exams").insert({
   title,
   subject:$("examSubject").value,
-  grade:$("examGrade").value.trim(),
+  grade,
+  duration_minutes:Math.max(1,Math.min(300,Number($("examDuration").value)||30)),
+  result_visibility:$("resultVisibility").value,
+  result_release_at:$("resultReleaseAt").value?new Date($("resultReleaseAt").value).toISOString():null,
   is_active:true
  });
 
@@ -637,7 +685,21 @@ async function addExam(){
  }
 
  await logActivity("إنشاء امتحان",title);
+ alert("تم إنشاء الامتحان.");
  examsPage();
+}
+
+function toggleQuestionFields(){
+ const t=$("qType")?.value;
+ const box=$("objectiveFields");
+ if(box)box.classList.toggle("hidden",t==="essay");
+
+ if(t==="true_false"){
+  $("o0").value="صح";
+  $("o1").value="خطأ";
+  $("o2").value="";
+  $("o3").value="";
+ }
 }
 
 async function addQuestion(){
@@ -645,15 +707,15 @@ async function addQuestion(){
 
  const exam_id=Number($("examSelect").value);
  const question_text=$("qText").value.trim();
- const options=[
-  $("o0").value,
-  $("o1").value,
-  $("o2").value,
-  $("o3").value
- ];
+ const type=$("qType").value;
+ const options=type==="essay"?[]:[
+  $("o0").value,$("o1").value,$("o2").value,$("o3").value
+ ].filter(x=>x.trim());
 
- if(!exam_id||!question_text||options.some(x=>!x.trim())){
-  alert("أكمل السؤال والاختيارات.");
+ const marks=Number($("qMarks").value)||1;
+
+ if(!exam_id||!question_text||marks<=0||(type!=="essay"&&options.length<2)){
+  alert("أكمل السؤال والاختيارات والدرجة.");
   return;
  }
 
@@ -661,7 +723,10 @@ async function addQuestion(){
   exam_id,
   question_text,
   options,
-  correct_answer:$("correct").value
+  question_type:type,
+  marks,
+  correct_answer:type==="essay"?null:$("correct").value,
+  model_answer:$("modelAnswer").value.trim()||null
  });
 
  if(r.error){
@@ -687,10 +752,16 @@ async function studentExamsPage(){
   return;
  }
 
+ let exams=r.data||[];
+ if(profile?.grade){
+  exams=exams.filter(x=>x.grade===profile.grade);
+ }
+
  setContent("<h2>الامتحانات المتاحة</h2>"+
-  ((r.data||[]).map(x=>`
+  (exams.map(x=>`
    <div class="item">
     ${esc(x.title)}
+    <br><span class="small">المدة: ${esc(x.duration_minutes||30)} دقيقة</span>
     <button onclick="startExam(${Number(x.id)})">ابدأ الامتحان</button>
    </div>
   `).join("")||"<p>لا توجد امتحانات متاحة.</p>")
@@ -701,7 +772,7 @@ async function startExam(id){
  if(!requireStudent())return;
 
  const r=await db.from("questions")
-  .select("id,question_text,options")
+  .select("id,question_text,options,question_type,marks,model_answer")
   .eq("exam_id",id);
 
  if(r.error){
@@ -716,12 +787,20 @@ async function startExam(id){
   return;
  }
 
+ if(qs.some(q=>(q.question_type||"mcq")==="essay")){
+  setContent(errorBox("هذا الامتحان يحتوي على سؤال مقالي. التصحيح المقالي يحتاج مسار تسليم وتصحيح منفصل، ولن أرسل درجة آلية غير صحيحة."));
+  return;
+ }
+
  setContent(`
   <h2>الامتحان</h2>
+  <div class="item">الوقت المتاح: <b id="examClock">--:--</b></div>
+
   <form id="examForm">
    ${qs.map((q,i)=>`
     <div class="item">
      <b>${i+1}. ${esc(q.question_text)}</b>
+     <br><span class="small">الدرجة: ${esc(q.marks||1)}</span>
      ${(Array.isArray(q.options)?q.options:[]).map((o,j)=>`
       <label>
        <input style="width:auto" type="radio" name="q${q.id}" value="${j}" required>
@@ -734,10 +813,43 @@ async function startExam(id){
   </form>
  `);
 
+ const examMeta=await db.from("exams")
+  .select("duration_minutes")
+  .eq("id",id)
+  .single();
+
+ let remaining=Math.max(1,Number(examMeta.data?.duration_minutes)||30)*60;
+ let submitted=false;
+ const clock=$("examClock");
+
+ const tick=()=>{
+  if(!clock||submitted)return;
+
+  const m=Math.floor(remaining/60);
+  const ss=remaining%60;
+
+  clock.textContent=String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");
+
+  if(remaining<=0){
+   $("examForm").requestSubmit();
+   return;
+  }
+
+  remaining--;
+ };
+
+ tick();
+ const timer=setInterval(tick,1000);
+
  $("examForm").onsubmit=async e=>{
   e.preventDefault();
 
+  if(submitted)return;
+  submitted=true;
+  clearInterval(timer);
+
   const answers={};
+
   qs.forEach(q=>{
    answers[q.id]=new FormData(e.target).get("q"+q.id);
   });
@@ -752,7 +864,7 @@ async function startExam(id){
    return;
   }
 
-  alert("تم تسليم الامتحان. درجتك: "+result.data+"%");
+  alert("تم تسليم الامتحان بنجاح.");
   await logActivity("تسليم امتحان",String(id));
   myResultsPage();
  };
@@ -765,6 +877,18 @@ async function announcementsPage(){
    <h2>نشر إعلان</h2>
    <input id="annTitle" placeholder="عنوان الإعلان">
    <textarea id="annMessage" placeholder="نص الإعلان"></textarea>
+
+   <label>الصف المستهدف</label>
+   <select id="annGrade">
+    <option value="">كل الصفوف</option>
+    <option>أولى إعدادي</option>
+    <option>تانية إعدادي</option>
+    <option>تالتة إعدادي</option>
+    <option>أولى ثانوي</option>
+    <option>تانية ثانوي</option>
+    <option>تالتة ثانوي</option>
+   </select>
+
    <button onclick="publishAnnouncement()">نشر الإعلان</button>
    <hr>`:""}
   <h2>الإعلانات</h2>
@@ -780,7 +904,13 @@ async function announcementsPage(){
   return;
  }
 
- $("annList").innerHTML=(r.data||[]).map(x=>`
+ let announcements=r.data||[];
+
+ if(!isTeacher()&&profile?.grade){
+  announcements=announcements.filter(x=>!x.grade||x.grade===profile.grade);
+ }
+
+ $("annList").innerHTML=announcements.map(x=>`
   <div class="item">
    <h3>${esc(x.title)}</h3>
    <p>${esc(x.message)}</p>
@@ -800,7 +930,9 @@ async function publishAnnouncement(){
  }
 
  const r=await db.from("announcements").insert({
-  title,message:messageText
+  title,
+  message:messageText,
+  grade:$("annGrade").value||null
  });
 
  if(r.error){
@@ -812,7 +944,7 @@ async function publishAnnouncement(){
  announcementsPage();
 }
 
-/* نتائج الامتحانات والدرجات اليدوية - المدير */
+/* نتائج المدير */
 async function resultsPage(){
  if(!requireTeacher())return;
 
@@ -835,11 +967,6 @@ async function resultsPage(){
 
  if(manualResults.error){
   setContent(errorBox(manualResults.error));
-  return;
- }
-
- if(!students){
-  setContent("<p>تعذر تحميل الطلاب.</p>");
   return;
  }
 
@@ -1132,7 +1259,7 @@ async function resetRequestsPage(){
     ${x.status==="pending"?`
      <button class="secondary" onclick="rejectResetRequest(${Number(x.id)})">رفض الطلب</button>
     `:""}
-    <p class="small">تغيير كلمة المرور فعليًا يحتاج تنفيذ وظيفة reset-student-password.</p>
+    <p class="small">تغيير كلمة المرور فعليًا يحتاج ربط وظيفة reset-student-password.</p>
    </div>
   `).join("")||"<p>لا توجد طلبات.</p>"}
  `);
@@ -1192,7 +1319,7 @@ async function settingsPage(){
 
   <label>اسم المستخدم</label>
   <input id="settingsUsername" value="${esc(profile?.username||"")}" readonly>
-  <p class="small">تغيير اسم المستخدم يحتاج تحديث بيانات تسجيل الدخول أيضًا، لذلك تم إيقاف تعديله من هنا مؤقتًا.</p>
+  <p class="small">تغيير اسم المستخدم يحتاج تحديث بيانات تسجيل الدخول أيضًا.</p>
 
   <button onclick="saveProfile()">حفظ الاسم</button>
 
@@ -1266,9 +1393,7 @@ async function logout(){
 db.auth.getSession().then(({data,error})=>{
  if(!error&&data.session){
   start(data.session.user);
- }
 });
-
 </script>
 </body>
 </html>
