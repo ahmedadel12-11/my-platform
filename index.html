@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -276,6 +277,7 @@ async function getStudents(){
  return p.data||[];
 }
 
+/* صفحة الطلاب مع زر الحذف */
 async function studentsPage(){
  if(!requireTeacher())return;
 
@@ -292,20 +294,29 @@ async function studentsPage(){
    <option>تانية ثانوي</option><option>تالتة ثانوي</option>
   </select>
   <button onclick="createStudent()">إنشاء حساب طالب</button>
-  <div id="studentList"></div>
+  <div id="studentList">جار تحميل الطلاب...</div>
  `);
 
  try{
   const students=await getStudents();
   $("studentList").innerHTML=students.map(s=>`
    <div class="item">
-    ${esc(s.full_name)} — ${esc(s.username)}
+    <b>${esc(s.full_name)}</b>
+    <br>اسم المستخدم: ${esc(s.username)}
     <br>الصف: ${esc(s.grade||"غير محدد")}
+    <br>
+    <button class="danger"
+     onclick="deleteStudent('${esc(s.id)}','${esc(s.full_name)}')">
+     حذف الطالب نهائيًا
+    </button>
    </div>
   `).join("")||"<p>لا يوجد طلاب.</p>";
- }catch(e){$("studentList").innerHTML=errorBox(e)}
+ }catch(e){
+  $("studentList").innerHTML=errorBox(e);
+ }
 }
 
+/* إنشاء طالب */
 async function createStudent(){
  if(!requireTeacher())return;
 
@@ -341,6 +352,56 @@ async function createStudent(){
   studentsPage();
  }catch(e){alert("تعذر الاتصال: "+e.message)}
 }
+
+/* حذف الطالب نهائيًا */
+async function deleteStudent(studentId,studentName){
+ if(!requireTeacher())return;
+
+ const confirmed=confirm(
+  "تحذير: هل أنت متأكد من حذف الطالب نهائيًا؟\n"+
+  "الطالب: "+studentName+
+  "\nسيتم حذف حسابه وسجلاته المرتبطة. لا يمكن التراجع عن الحذف."
+ );
+
+ if(!confirmed)return;
+
+ try{
+  const {data:{session}}=await db.auth.getSession();
+
+  if(!session){
+   alert("انتهت الجلسة. سجل الدخول مرة أخرى.");
+   return;
+  }
+
+  const response=await fetch(
+   SUPABASE_URL+"/functions/v1/delete-student",
+   {
+    method:"POST",
+    headers:{
+     "Content-Type":"application/json",
+     "Authorization":"Bearer "+session.access_token,
+     "apikey":SUPABASE_KEY
+    },
+    body:JSON.stringify({student_id:studentId})
+   }
+  );
+
+  let result={};
+  try{result=await response.json()}catch(e){}
+
+  if(!response.ok){
+   alert("فشل حذف الطالب: "+(result.error||result.message||"خطأ غير معروف"));
+   return;
+  }
+
+  alert("تم حذف حساب الطالب بنجاح.");
+  await studentsPage();
+
+ }catch(e){
+  alert("تعذر الاتصال بوظيفة الحذف: "+e.message);
+ }
+}
+window.deleteStudent=deleteStudent;
 
 /* الدروس */
 async function lessonsPage(){
@@ -632,7 +693,6 @@ async function studentExamsPage(){
 async function startExam(id){
  if(!requireStudent())return;
 
- /* لا نحمل الإجابة النموذجية إلى متصفح الطالب */
  const r=await db.from("questions")
   .select("id,question_text,options,question_type,marks")
   .eq("exam_id",id);
@@ -744,7 +804,7 @@ async function publishAnnouncement(){
  announcementsPage();
 }
 
-/* نتائج المدرس: إظهار وإخفاء الدرجات */
+/* نتائج المدرس */
 async function resultsPage(){
  if(!requireTeacher())return;
 
@@ -798,7 +858,6 @@ async function resultsPage(){
  `);
 }
 
-/* تعديل إرسال رقم النتيجة كرقم صحيح bigint */
 async function setResultVisibility(resultId,visible){
  if(!requireTeacher())return;
 
@@ -830,7 +889,7 @@ async function setResultVisibility(resultId,visible){
 }
 window.setResultVisibility=setResultVisibility;
 
-/* نتائج الطالب: النتائج الظاهرة فقط */
+/* نتائج الطالب */
 async function myResultsPage(){
  if(!requireStudent())return;
 
