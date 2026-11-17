@@ -277,7 +277,7 @@ async function getStudents(){
  return p.data||[];
 }
 
-/* صفحة الطلاب - تم إضافة زر تعديل البيانات */
+/* صفحة الطلاب */
 async function studentsPage(){
  if(!requireTeacher())return;
 
@@ -325,7 +325,7 @@ async function studentsPage(){
  }
 }
 
-/* تعديل اسم الطالب والصف الدراسي */
+/* تعديل اسم الطالب والصف الدراسي - النسخة المصححة */
 async function editStudent(studentId){
  if(!requireTeacher())return;
 
@@ -365,7 +365,7 @@ async function editStudent(studentId){
   );
 
   const gradeChoice=prompt(
-   "اختر رقم الصف الدراسي:\n"+
+   "اكتب رقم الصف أو اسم الصف:\n"+
    "1- أولى إعدادي\n"+
    "2- تانية إعدادي\n"+
    "3- تالتة إعدادي\n"+
@@ -377,17 +377,31 @@ async function editStudent(studentId){
 
   if(gradeChoice===null)return;
 
-  const gradeIndex=Number(gradeChoice)-1;
+  const entered=String(gradeChoice).trim();
 
-  if(!Number.isInteger(gradeIndex)||!grades[gradeIndex]){
-   alert("رقم الصف غير صحيح.");
+  const normalized=entered
+   .replace(/[٠-٩]/g,d=>"٠١٢٣٤٥٦٧٨٩".indexOf(d))
+   .replace(/[۰-۹]/g,d=>"۰۱۲۳۴۵۶۷۸۹".indexOf(d));
+
+  let selectedGrade="";
+
+  if(/^[1-6]$/.test(normalized)){
+   selectedGrade=grades[Number(normalized)-1];
+  }else{
+   selectedGrade=grades.find(
+    g=>g===entered
+   )||"";
+  }
+
+  if(!selectedGrade){
+   alert("اختيار الصف غير صحيح.\nاكتب رقمًا من 1 إلى 6 أو اسم الصف كما هو مكتوب في القائمة.");
    return;
   }
 
   const {error:updateError}=await db.from("profiles")
    .update({
     full_name:full_name,
-    grade:grades[gradeIndex]
+    grade:selectedGrade
    })
    .eq("id",studentId);
 
@@ -397,16 +411,17 @@ async function editStudent(studentId){
 
   await logActivity(
    "تعديل بيانات طالب",
-   full_name+" - "+grades[gradeIndex]
+   full_name+" - "+selectedGrade
   );
 
   await studentsPage();
 
  }catch(e){
+  console.error(e);
   alert(
    "تعذر تعديل بيانات الطالب:\n"+
    (e.message||e)+
-   "\n\nقد تحتاج صلاحيات قاعدة البيانات إلى السماح للمدرس بتعديل بيانات الطلاب."
+   "\n\nإذا استمرت المشكلة فقد تكون صلاحيات تعديل جدول profiles غير كافية."
   );
  }
 }
