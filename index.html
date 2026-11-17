@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -66,7 +67,17 @@ td,th{padding:10px;border-bottom:1px solid #46536a;text-align:right}
 
 const SUPABASE_URL="https://vpppdppyuvpfawtvmyph.supabase.co";
 const SUPABASE_KEY="sb_publishable_S_-TuxVqSsmLQmEMtL6IAA_oUXtEiM3";
-const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+
+let db=null;
+try{
+ if(window.supabase && typeof window.supabase.createClient==="function"){
+  db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+ }else{
+  console.error("Supabase library did not load.");
+ }
+}catch(e){
+ console.error("Supabase initialization failed:",e);
+}
 
 let user=null,role=null,profile=null;
 const $=id=>document.getElementById(id);
@@ -118,29 +129,55 @@ async function logActivity(activity,details=""){
 
 /* تسجيل الدخول */
 async function login(){
- const u=$("username").value.trim().toLowerCase();
- const p=$("password").value;
+ const btn=document.querySelector('button[onclick="login()"]');
+ try{
+  if(!db){
+   message("loginMsg","تعذر تحميل نظام تسجيل الدخول. حدّث الصفحة وحاول مرة أخرى.",true);
+   return;
+  }
 
- if(!/^[a-z0-9._-]{3,32}$/.test(u)||!p){
-  message("loginMsg","اكتب اسم المستخدم وكلمة المرور بشكل صحيح",true);
-  return;
+  const u=$("username")?.value.trim().toLowerCase()||"";
+  const p=$("password")?.value||"";
+
+  if(!/^[a-z0-9._-]{3,32}$/.test(u)||!p){
+   message("loginMsg","اكتب اسم المستخدم وكلمة المرور بشكل صحيح",true);
+   return;
+  }
+
+  if(btn){
+   btn.disabled=true;
+   btn.textContent="جارٍ تسجيل الدخول...";
+  }
+
+  message("loginMsg","جارٍ التحقق من بيانات الدخول...");
+
+  const email=u==="mrahmedadel"
+   ?"boda@students.example.com"
+   :u+"@students.example.com";
+
+  const {data,error}=await db.auth.signInWithPassword({
+   email,
+   password:p
+  });
+
+  if(error){
+   message("loginMsg","تعذر تسجيل الدخول: "+error.message,true);
+   return;
+  }
+
+  await start(data.user);
+
+ }catch(e){
+  console.error("Login error:",e);
+  message("loginMsg","حدث خطأ أثناء تسجيل الدخول: "+(e?.message||e),true);
+ }finally{
+  if(btn){
+   btn.disabled=false;
+   btn.textContent="دخول المنصة";
+  }
  }
-
- const email=u==="mrahmedadel"
-  ?"boda@students.example.com"
-  :u+"@students.example.com";
-
- const {data,error}=await db.auth.signInWithPassword({
-  email,password:p
- });
-
- if(error){
-  message("loginMsg","بيانات الدخول غير صحيحة",true);
-  return;
- }
-
- await start(data.user);
 }
+window.login=login;
 
 /* بدء الجلسة */
 async function start(authUser){
@@ -1390,13 +1427,14 @@ async function logout(){
  location.reload();
 }
 
-db.auth.getSession().then(({data,error})=>{
- if(!error&&data.session){
-  start(data.session.user);
- }
-}).catch(error=>{
- console.error("Session error:",error);
-});
+if(db){
+ db.auth.getSession().then(({data,error})=>{
+  if(!error&&data.session) start(data.session.user);
+ }).catch(error=>{
+  console.error("Session error:",error);
+  message("loginMsg","تعذر استعادة الجلسة. يمكنك تسجيل الدخول من جديد.",true);
+ });
+}
 
 </script>
 </body>
