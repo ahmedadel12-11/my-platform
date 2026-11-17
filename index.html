@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -15,6 +14,7 @@ main{max-width:1100px;margin:25px auto;padding:15px}
 .card{background:#1c2638;padding:20px;border-radius:15px;margin-bottom:18px}
 input,textarea,select{width:100%;padding:13px;margin:8px 0;border:1px solid #46536a;border-radius:8px;background:#111a29;color:white;font:inherit}
 button{background:#ff922e;color:#171717;padding:12px 18px;border:0;border-radius:8px;font-weight:bold;cursor:pointer;margin:5px}
+button:disabled{opacity:.5;cursor:not-allowed}
 button.secondary{background:#29364c;color:white}
 button.danger{background:#a83242;color:white}
 nav{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:15px}
@@ -614,7 +614,27 @@ async function saveAttendance(){
  attendancePage();
 }
 
-/* الامتحانات */
+/* دالة حساب عدد أسئلة الامتحانات */
+async function getQuestionCounts(exams){
+ const counts={};
+ const ids=(exams||[]).map(x=>x.id);
+
+ if(!ids.length)return counts;
+
+ const r=await db.from("questions")
+  .select("exam_id")
+  .in("exam_id",ids);
+
+ if(r.error)throw r.error;
+
+ (r.data||[]).forEach(q=>{
+  counts[q.exam_id]=(counts[q.exam_id]||0)+1;
+ });
+
+ return counts;
+}
+
+/* الامتحانات - لوحة المدرس */
 async function examsPage(){
  if(!requireTeacher())return;
 
@@ -624,6 +644,16 @@ async function examsPage(){
 
  if(r.error){
   setContent(errorBox(r.error));
+  return;
+ }
+
+ const exams=r.data||[];
+ let counts={};
+
+ try{
+  counts=await getQuestionCounts(exams);
+ }catch(e){
+  setContent(errorBox(e));
   return;
  }
 
@@ -654,8 +684,8 @@ async function examsPage(){
   <hr>
   <h2>إضافة سؤال</h2>
   <select id="examSelect">
-   ${(r.data||[]).map(x=>
-    `<option value="${x.id}">${esc(x.title)}</option>`
+   ${exams.map(x=>
+    `<option value="${x.id}">${esc(x.title)} — ${counts[x.id]||0} سؤال</option>`
    ).join("")}
   </select>
 
@@ -689,9 +719,13 @@ async function examsPage(){
 
   <hr>
   <h2>الامتحانات</h2>
-  ${(r.data||[]).map(x=>
-   `<div class="item">${esc(x.title)} — ${x.is_active?"نشط":"غير نشط"} — ${esc(x.grade||"")}</div>`
-  ).join("")}
+  ${exams.map(x=>`
+   <div class="item">
+    <b>${esc(x.title)}</b>
+    <br>عدد الأسئلة: ${counts[x.id]||0} سؤال
+    <br>${x.is_active?"نشط":"غير نشط"} — ${esc(x.grade||"")}
+   </div>
+  `).join("")||"<p>لا توجد امتحانات.</p>"}
  `);
 }
 
@@ -773,6 +807,9 @@ async function addQuestion(){
 
  alert("تمت إضافة السؤال.");
  await logActivity("إضافة سؤال",question_text);
+
+ /* تحديث عدد الأسئلة بعد الإضافة */
+ examsPage();
 }
 
 /* امتحانات الطالب */
@@ -790,19 +827,36 @@ async function studentExamsPage(){
  }
 
  let exams=r.data||[];
+
  if(profile?.grade){
   exams=exams.filter(x=>x.grade===profile.grade);
  }
 
- setContent("<h2>الامتحانات المتاحة</h2>"+
-  (exams.map(x=>`
+ let counts={};
+
+ try{
+  counts=await getQuestionCounts(exams);
+ }catch(e){
+  setContent(errorBox(e));
+  return;
+ }
+
+ setContent(`
+  <h2>الامتحانات المتاحة</h2>
+  ${exams.map(x=>`
    <div class="item">
-    ${esc(x.title)}
+    <b>${esc(x.title)}</b>
+    <br>عدد الأسئلة: ${counts[x.id]||0} سؤال
     <br><span class="small">المدة: ${esc(x.duration_minutes||30)} دقيقة</span>
-    <button onclick="startExam(${Number(x.id)})">ابدأ الامتحان</button>
+    <br>
+    <button
+     onclick="startExam(${Number(x.id)})"
+     ${!counts[x.id]?"disabled":""}>
+     ${counts[x.id]?"ابدأ الامتحان":"لا توجد أسئلة"}
+    </button>
    </div>
-  `).join("")||"<p>لا توجد امتحانات متاحة.</p>")
- );
+  `).join("")||"<p>لا توجد امتحانات متاحة.</p>"}
+ `);
 }
 
 async function startExam(id){
