@@ -1393,7 +1393,11 @@ async function logout(){
 db.auth.getSession().then(({data,error})=>{
  if(!error&&data.session){
   start(data.session.user);
+ }
+}).catch(error=>{
+ console.error("Session error:",error);
 });
+
 </script>
 </body>
 </html>
