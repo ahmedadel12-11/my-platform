@@ -277,7 +277,7 @@ async function getStudents(){
  return p.data||[];
 }
 
-/* صفحة الطلاب مع زر الحذف */
+/* صفحة الطلاب */
 async function studentsPage(){
  if(!requireTeacher())return;
 
@@ -353,7 +353,7 @@ async function createStudent(){
  }catch(e){alert("تعذر الاتصال: "+e.message)}
 }
 
-/* حذف الطالب نهائيًا */
+/* حذف الطالب */
 async function deleteStudent(studentId,studentName){
  if(!requireTeacher())return;
 
@@ -423,7 +423,14 @@ async function lessonsPage(){
  if(r.error){$("lessonList").innerHTML=errorBox(r.error);return}
 
  let lessons=r.data||[];
- if(!isTeacher()&&profile?.grade)lessons=lessons.filter(x=>x.grade===profile.grade);
+ if(!isTeacher()){
+  const studentGrade=String(profile?.grade||"").trim();
+  if(!studentGrade){
+   $("lessonList").innerHTML=errorBox("صفك الدراسي غير مسجل. تواصل مع المدرس.");
+   return;
+  }
+  lessons=lessons.filter(x=>String(x.grade||"").trim()===studentGrade);
+ }
 
  $("lessonList").innerHTML=lessons.map(x=>`
   <div class="item">
@@ -650,17 +657,35 @@ async function addQuestion(){
  examsPage();
 }
 
-/* امتحانات الطالب */
+/* امتحانات الطالب - تم تعديل فلترة الصف */
 async function studentExamsPage(){
  if(!requireStudent())return;
 
- const r=await db.from("exams").select("*").eq("is_active",true).order("created_at",{ascending:false});
+ const studentGrade=String(profile?.grade||"").trim();
+
+ if(!studentGrade){
+  setContent(`
+   <h2>الامتحانات المتاحة</h2>
+   <div class="msg error">
+    لم يتم تسجيل صفك الدراسي في حسابك.
+    برجاء التواصل مع المدرس لتحديث بياناتك.
+   </div>
+  `);
+  return;
+ }
+
+ const r=await db.from("exams")
+  .select("*")
+  .eq("is_active",true)
+  .eq("grade",studentGrade)
+  .order("created_at",{ascending:false});
+
  if(r.error){setContent(errorBox(r.error));return}
 
- let exams=r.data||[];
- if(profile?.grade)exams=exams.filter(x=>x.grade===profile.grade);
+ const exams=r.data||[];
 
  let counts={},visibleResults={};
+
  try{
   counts=await getQuestionCounts(exams);
 
@@ -670,23 +695,42 @@ async function studentExamsPage(){
    .eq("is_visible",true);
 
   if(results.error)throw results.error;
-  (results.data||[]).forEach(x=>visibleResults[x.exam_id]=x);
- }catch(e){setContent(errorBox(e));return}
+
+  (results.data||[]).forEach(x=>{
+   visibleResults[x.exam_id]=x;
+  });
+
+ }catch(e){
+  setContent(errorBox(e));
+  return;
+ }
 
  setContent(`
-  <h2>الامتحانات المتاحة</h2>
+  <h2>الامتحانات المتاحة لصفك</h2>
+
   ${exams.map(x=>{
    const result=visibleResults[x.id];
+
    return `<div class="item">
     <b>${esc(x.title)}</b>
     <br>عدد الأسئلة: ${counts[x.id]||0} سؤال
-    ${result?`<br><span class="msg">درجتك: ${esc(result.score_points)} من ${esc(result.total_points)}</span>`:""}
-    <br><span class="small">المدة: ${esc(x.duration_minutes||30)} دقيقة</span>
-    <br><button onclick="startExam(${Number(x.id)})" ${!counts[x.id]?"disabled":""}>
+
+    ${result?`
+     <br><span class="msg">
+      درجتك: ${esc(result.score_points)} من ${esc(result.total_points)}
+     </span>`:""}
+
+    <br><span class="small">
+     المدة: ${esc(x.duration_minutes||30)} دقيقة
+    </span>
+
+    <br>
+    <button onclick="startExam(${Number(x.id)})"
+     ${!counts[x.id]?"disabled":""}>
      ${counts[x.id]?"ابدأ الامتحان":"لا توجد أسئلة"}
     </button>
    </div>`;
-  }).join("")||"<p>لا توجد امتحانات متاحة.</p>"}
+  }).join("")||"<p>لا توجد امتحانات متاحة لصفك حاليًا.</p>"}
  `);
 }
 
@@ -784,7 +828,14 @@ async function announcementsPage(){
  if(r.error){$("annList").innerHTML=errorBox(r.error);return}
 
  let announcements=r.data||[];
- if(!isTeacher()&&profile?.grade)announcements=announcements.filter(x=>!x.grade||x.grade===profile.grade);
+ if(!isTeacher()){
+  const studentGrade=String(profile?.grade||"").trim();
+  if(!studentGrade){
+   $("annList").innerHTML=errorBox("صفك الدراسي غير مسجل. تواصل مع المدرس.");
+   return;
+  }
+  announcements=announcements.filter(x=>!x.grade||String(x.grade).trim()===studentGrade);
+ }
 
  $("annList").innerHTML=announcements.map(x=>`
   <div class="item"><h3>${esc(x.title)}</h3><p>${esc(x.message)}</p></div>
