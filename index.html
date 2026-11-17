@@ -779,7 +779,7 @@ async function resultsPage(){
       :'<span style="color:#ffad55">مخفية عن الطالب</span>'}
     <br>
     <button class="${x.is_visible?"danger":"success"}"
-     onclick="setResultVisibility('${esc(x.id)}',${!x.is_visible})">
+     onclick="setResultVisibility(${Number(x.id)},${!x.is_visible})">
      ${x.is_visible?"إخفاء الدرجة عن الطالب":"إظهار الدرجة للطالب"}
     </button>
    </div>
@@ -798,12 +798,20 @@ async function resultsPage(){
  `);
 }
 
+/* تعديل إرسال رقم النتيجة كرقم صحيح bigint */
 async function setResultVisibility(resultId,visible){
  if(!requireTeacher())return;
 
+ const numericId=Number(resultId);
+
+ if(!Number.isSafeInteger(numericId)||numericId<=0){
+  alert("رقم النتيجة غير صحيح.");
+  return;
+ }
+
  const r=await db.rpc("set_exam_result_visibility",{
-  p_result_id:resultId,
-  p_visible:visible
+  p_result_id:numericId,
+  p_visible:Boolean(visible)
  });
 
  if(r.error){
@@ -812,7 +820,12 @@ async function setResultVisibility(resultId,visible){
  }
 
  alert(visible?"تم إظهار الدرجة للطالب":"تم إخفاء الدرجة عن الطالب");
- await logActivity(visible?"إظهار نتيجة امتحان":"إخفاء نتيجة امتحان",resultId);
+
+ await logActivity(
+  visible?"إظهار نتيجة امتحان":"إخفاء نتيجة امتحان",
+  String(numericId)
+ );
+
  await resultsPage();
 }
 window.setResultVisibility=setResultVisibility;
