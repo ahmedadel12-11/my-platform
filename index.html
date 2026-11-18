@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
@@ -457,8 +458,6 @@ async function studentsPage(){
  }
 }
 
-/* تعديل الطالب */
-
 async function editStudent(studentId){
  if(!requireTeacher())return;
 
@@ -527,7 +526,7 @@ async function editStudent(studentId){
 }
 window.editStudent=editStudent;
 
-/* إنشاء طالب - تم تعديل حفظ الصف والتحقق منه */
+/* إنشاء طالب */
 
 async function createStudent(){
  if(!requireTeacher())return;
@@ -583,12 +582,6 @@ async function createStudent(){
    throw new Error(result.error||result.message||"فشل إنشاء الطالب.");
   }
 
-  /*
-    تأكيد حفظ الصف في profiles بعد إنشاء الحساب.
-    يتم استخدام معرف الطالب الذي تعيده الوظيفة إن توفر،
-    وإلا يتم البحث باسم المستخدم.
-  */
-
   let studentId=result.student?.id||result.student_id||null;
 
   if(!studentId){
@@ -602,16 +595,11 @@ async function createStudent(){
   }
 
   if(!studentId){
-   throw new Error(
-    "تم تنفيذ طلب إنشاء الحساب، لكن لم يتم العثور على سجل الطالب في profiles. راجع وظيفة create-student."
-   );
+   throw new Error("تم تنفيذ طلب إنشاء الحساب، لكن لم يتم العثور على سجل الطالب في profiles.");
   }
 
   const saveGrade=await db.from("profiles")
-   .update({
-    full_name:full_name,
-    grade:gradeName
-   })
+   .update({full_name:full_name,grade:gradeName})
    .eq("id",studentId)
    .select("id,full_name,username,grade")
    .single();
@@ -621,11 +609,7 @@ async function createStudent(){
   }
 
   if(String(saveGrade.data.grade||"").trim()!==gradeName){
-   throw new Error(
-    "لم يتم تأكيد حفظ الصف.\n"+
-    "الصف المطلوب: "+gradeName+
-    "\nالصف الموجود: "+(saveGrade.data.grade||"فارغ")
-   );
+   throw new Error("لم يتم تأكيد حفظ الصف الدراسي.");
   }
 
   alert("تم إنشاء حساب الطالب وحفظ الصف الدراسي بنجاح: "+gradeName);
@@ -888,7 +872,9 @@ async function examsPage(){
  if(!requireTeacher())return;
 
  const [r,grades]=await Promise.all([
-  db.from("exams").select("*").order("created_at",{ascending:false}),
+  db.from("exams").select("*")
+   .is("deleted_at",null)
+   .order("created_at",{ascending:false}),
   getGrades()
  ]);
 
@@ -903,36 +889,53 @@ async function examsPage(){
  setContent(`
   <h2>إنشاء امتحان</h2>
   <input id="examTitle" placeholder="اسم الامتحان">
+
   <select id="examSubject">
    <option value="history">التاريخ</option>
    <option value="geography">الجغرافيا</option>
   </select>
+
   <label>الصف الدراسي</label>
   <select id="examGrade">${gradeOptions(grades,profile?.grade||"")}</select>
+
   <label>مدة الامتحان بالدقائق</label>
   <input id="examDuration" type="number" min="1" max="300" value="30">
+
+  <label>موعد بداية الامتحان</label>
+  <input id="examStartsAt" type="datetime-local">
+
+  <label>موعد نهاية الامتحان</label>
+  <input id="examEndsAt" type="datetime-local">
+
   <label>ظهور النتيجة</label>
   <select id="resultVisibility">
    <option value="manual">بعد سماح المدرس</option>
    <option value="immediate">فور التسليم</option>
    <option value="scheduled">في موعد محدد</option>
   </select>
+
   <label>موعد ظهور النتيجة</label>
   <input id="resultReleaseAt" type="datetime-local">
+
   <button onclick="addExam()">إنشاء الامتحان</button>
+
   <hr><h2>إضافة سؤال</h2>
   <select id="examSelect">
-   ${exams.map(x=>`<option value="${x.id}">${esc(x.title)} — ${counts[x.id]||0} سؤال</option>`).join("")}
+   ${exams.filter(x=>x.is_active).map(x=>`<option value="${x.id}">${esc(x.title)} — ${counts[x.id]||0} سؤال</option>`).join("")}
   </select>
+
   <textarea id="qText" placeholder="السؤال"></textarea>
+
   <label>نوع السؤال</label>
   <select id="qType" onchange="toggleQuestionFields()">
    <option value="mcq">اختيار من متعدد</option>
    <option value="true_false">صح أو خطأ</option>
    <option value="essay">مقالي</option>
   </select>
+
   <label>درجة السؤال</label>
   <input id="qMarks" type="number" min="0.5" step="0.5" value="1">
+
   <div id="objectiveFields">
    <input id="o0" placeholder="الاختيار الأول">
    <input id="o1" placeholder="الاختيار الثاني">
@@ -945,16 +948,31 @@ async function examsPage(){
     <option value="3">الرابع</option>
    </select>
   </div>
+
   <textarea id="modelAnswer" placeholder="الإجابة النموذجية / ملاحظات التصحيح"></textarea>
   <button onclick="addQuestion()">إضافة السؤال</button>
+
   <hr><h2>الامتحانات</h2>
-  ${exams.map(x=>`
-   <div class="item">
-    <b>${esc(x.title)}</b><br>
-    عدد الأسئلة: ${counts[x.id]||0} سؤال<br>
-    ${x.is_active?"نشط":"غير نشط"} — ${esc(x.grade||"")}
-   </div>
-  `).join("")||"<p>لا توجد امتحانات.</p>"}
+  ${exams.map(x=>{
+   const now=new Date();
+   const start=x.starts_at?new Date(x.starts_at):null;
+   const end=x.ends_at?new Date(x.ends_at):null;
+   let status=x.is_active?"نشط":"غير نشط";
+   if(start&&now<start)status="لم يبدأ بعد";
+   if(end&&now>=end)status="انتهى";
+
+   return `
+    <div class="item">
+     <b>${esc(x.title)}</b><br>
+     عدد الأسئلة: ${counts[x.id]||0} سؤال<br>
+     الحالة: ${status}<br>
+     الصف: ${esc(x.grade||"")}<br>
+     البداية: ${esc(start?start.toLocaleString("ar-EG"):"غير محددة")}<br>
+     النهاية: ${esc(end?end.toLocaleString("ar-EG"):"غير محددة")}<br>
+     <button class="danger" onclick="deleteExam(${Number(x.id)},'${esc(x.title)}')">حذف الامتحان</button>
+    </div>
+   `;
+  }).join("")||"<p>لا توجد امتحانات.</p>"}
  `);
 }
 
@@ -963,8 +981,18 @@ async function addExam(){
 
  const title=$("examTitle").value.trim();
  const grade=$("examGrade").value;
+ const startValue=$("examStartsAt").value;
+ const endValue=$("examEndsAt").value;
 
- if(!title||!grade){alert("اكتب اسم الامتحان واختر الصف.");return}
+ if(!title||!grade){
+  alert("اكتب اسم الامتحان واختر الصف.");
+  return;
+ }
+
+ if(startValue&&endValue&&new Date(endValue)<=new Date(startValue)){
+  alert("موعد النهاية يجب أن يكون بعد موعد البداية.");
+  return;
+ }
 
  const r=await db.from("exams").insert({
   title,
@@ -972,16 +1000,46 @@ async function addExam(){
   grade,
   duration_minutes:Math.max(1,Math.min(300,Number($("examDuration").value)||30)),
   result_visibility:$("resultVisibility").value,
-  result_release_at:$("resultReleaseAt").value?new Date($("resultReleaseAt").value).toISOString():null,
+  result_release_at:$("resultReleaseAt").value?
+   new Date($("resultReleaseAt").value).toISOString():null,
+  starts_at:startValue?new Date(startValue).toISOString():null,
+  ends_at:endValue?new Date(endValue).toISOString():null,
   is_active:true
  });
 
- if(r.error){alert(r.error.message);return}
+ if(r.error){alert("تعذر إنشاء الامتحان: "+r.error.message);return}
 
  await logActivity("إنشاء امتحان",title);
- alert("تم إنشاء الامتحان.");
+ alert("تم إنشاء الامتحان بنجاح.");
  examsPage();
 }
+
+async function deleteExam(id,title){
+ if(!requireTeacher())return;
+
+ if(!confirm(
+  "هل تريد حذف الامتحان: "+title+"؟\n"+
+  "سيختفي الامتحان من المنصة، لكن درجات الطلاب وأسماء الامتحانات ستظل محفوظة."
+ ))return;
+
+ const r=await db.from("exams")
+  .update({
+   deleted_at:new Date().toISOString(),
+   is_active:false
+  })
+  .eq("id",id)
+  .is("deleted_at",null);
+
+ if(r.error){
+  alert("تعذر حذف الامتحان: "+r.error.message);
+  return;
+ }
+
+ await logActivity("حذف امتحان",title);
+ alert("تم حذف الامتحان مع الاحتفاظ بالنتائج.");
+ examsPage();
+}
+window.deleteExam=deleteExam;
 
 function toggleQuestionFields(){
  const t=$("qType")?.value;
@@ -1045,6 +1103,7 @@ async function studentExamsPage(){
   .select("*")
   .eq("is_active",true)
   .eq("grade",studentGrade)
+  .is("deleted_at",null)
   .order("created_at",{ascending:false});
 
  if(r.error){setContent(errorBox(r.error));return}
@@ -1067,18 +1126,42 @@ async function studentExamsPage(){
   return;
  }
 
+ const now=new Date();
+
  setContent(`
-  <h2>الامتحانات المتاحة لصفك</h2>
+  <h2>الامتحانات الخاصة بصفك</h2>
   ${exams.map(x=>{
    const result=visibleResults[x.id];
+   const start=x.starts_at?new Date(x.starts_at):null;
+   const end=x.ends_at?new Date(x.ends_at):null;
+
+   let status="متاح الآن";
+   let disabled=false;
+
+   if(start&&now<start){
+    status="لم يبدأ بعد";
+    disabled=true;
+   }else if(end&&now>=end){
+    status="انتهى الامتحان";
+    disabled=true;
+   }
+
+   if(!counts[x.id]){
+    status="لا توجد أسئلة";
+    disabled=true;
+   }
+
    return `<div class="item">
     <b>${esc(x.title)}</b><br>
-    عدد الأسئلة: ${counts[x.id]||0} سؤال
-    ${result?`<br><span class="msg">درجتك: ${esc(result.score_points)} من ${esc(result.total_points)}</span>`:""}
-    <br><span class="small">المدة: ${esc(x.duration_minutes||30)} دقيقة</span><br>
-    <button onclick="startExam(${Number(x.id)})" ${!counts[x.id]?"disabled":""}>
-     ${counts[x.id]?"ابدأ الامتحان":"لا توجد أسئلة"}
-    </button>
+    المادة: ${x.subject==="history"?"التاريخ":"الجغرافيا"}<br>
+    عدد الأسئلة: ${counts[x.id]||0} سؤال<br>
+    المدة: ${esc(x.duration_minutes||30)} دقيقة<br>
+    البداية: ${esc(start?start.toLocaleString("ar-EG"):"غير محددة")}<br>
+    النهاية: ${esc(end?end.toLocaleString("ar-EG"):"غير محددة")}<br>
+    الحالة: <b>${status}</b>
+    ${result?`<p class="msg">درجتك: ${esc(result.score_points)} من ${esc(result.total_points)}</p>`:""}
+    <br>
+    <button onclick="startExam(${Number(x.id)})" ${disabled?"disabled":""}>ابدأ الامتحان</button>
    </div>`;
   }).join("")||"<p>لا توجد امتحانات متاحة لصفك حاليًا.</p>"}
  `);
@@ -1086,6 +1169,34 @@ async function studentExamsPage(){
 
 async function startExam(id){
  if(!requireStudent())return;
+
+ const meta=await db.from("exams")
+  .select("*")
+  .eq("id",id)
+  .is("deleted_at",null)
+  .single();
+
+ if(meta.error){alert("الامتحان غير متاح.");return}
+
+ const exam=meta.data;
+ const studentGrade=String(profile?.grade||"").trim();
+
+ if(!exam.is_active||String(exam.grade||"").trim()!==studentGrade){
+  alert("هذا الامتحان غير متاح لحسابك.");
+  return;
+ }
+
+ const now=new Date();
+
+ if(exam.starts_at&&now<new Date(exam.starts_at)){
+  alert("لم يبدأ موعد الامتحان بعد.");
+  return;
+ }
+
+ if(exam.ends_at&&now>=new Date(exam.ends_at)){
+  alert("انتهى موعد الامتحان.");
+  return;
+ }
 
  const r=await db.from("questions")
   .select("id,question_text,options,question_type,marks")
@@ -1102,16 +1213,16 @@ async function startExam(id){
  }
 
  setContent(`
-  <h2>الامتحان</h2>
-  <div class="item">الوقت المتاح: <b id="examClock">--:--</b></div>
-  <form id="examForm">
+  <h2>${esc(exam.title)}</h2>
+  <div class="item">الوقت المتبقي: <b id="examClock">--:--</b></div>
+  <form id="examForm" novalidate>
    ${qs.map((q,i)=>`
     <div class="item">
      <b>${i+1}. ${esc(q.question_text)}</b><br>
      <span class="small">الدرجة: ${esc(q.marks||1)}</span>
      ${(Array.isArray(q.options)?q.options:[]).map((o,j)=>`
       <label>
-       <input style="width:auto" type="radio" name="q${q.id}" value="${j}" required>
+       <input style="width:auto" type="radio" name="q${q.id}" value="${j}">
        ${esc(o)}
       </label>
      `).join("")}
@@ -1121,31 +1232,46 @@ async function startExam(id){
   </form>
  `);
 
- const examMeta=await db.from("exams").select("duration_minutes").eq("id",id).single();
+ const duration=Math.max(1,Number(exam.duration_minutes)||30)*60;
+ const endSeconds=exam.ends_at?
+  Math.floor((new Date(exam.ends_at).getTime()-Date.now())/1000):duration;
 
- let remaining=Math.max(1,Number(examMeta.data?.duration_minutes)||30)*60;
+ let remaining=Math.max(1,Math.min(duration,endSeconds));
  let submitted=false;
  const clock=$("examClock");
+ const form=$("examForm");
 
  const tick=()=>{
   if(!clock||submitted)return;
-  const m=Math.floor(remaining/60),ss=remaining%60;
-  clock.textContent=String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0");
-  if(remaining<=0){$("examForm").requestSubmit();return}
+
+  const m=Math.floor(remaining/60);
+  const s=remaining%60;
+  clock.textContent=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+
+  if(remaining<=0){
+   form.requestSubmit();
+   return;
+  }
+
   remaining--;
  };
 
  tick();
  const timer=setInterval(tick,1000);
 
- $("examForm").onsubmit=async e=>{
+ form.onsubmit=async e=>{
   e.preventDefault();
   if(submitted)return;
-  submitted=true;
-  clearInterval(timer);
 
   const answers={};
-  qs.forEach(q=>answers[q.id]=new FormData(e.target).get("q"+q.id));
+  const formData=new FormData(e.target);
+
+  qs.forEach(q=>{
+   answers[q.id]=formData.get("q"+q.id);
+  });
+
+  submitted=true;
+  clearInterval(timer);
 
   const result=await db.rpc("submit_exam",{
    p_exam_id:id,
@@ -1153,13 +1279,14 @@ async function startExam(id){
   });
 
   if(result.error){
-   alert(result.error.message);
    submitted=false;
+   alert("لم يتم تسليم الامتحان: "+result.error.message);
+   studentExamsPage();
    return;
   }
 
   alert("تم تسليم الامتحان بنجاح. ستظهر الدرجة بعد سماح المدرس.");
-  await logActivity("تسليم امتحان",String(id));
+  await logActivity("تسليم امتحان",exam.title);
   studentExamsPage();
  };
 }
@@ -1237,7 +1364,7 @@ async function resultsPage(){
 
  const [examResults,manualResults,students]=await Promise.all([
   db.from("exam_results")
-   .select("id,exam_id,student_id,score,score_points,total_points,is_visible,submitted_at,profiles(full_name),exams(title)")
+   .select("id,exam_id,student_id,exam_title,score,score_points,total_points,is_visible,submitted_at,profiles(full_name),exams(title)")
    .order("submitted_at",{ascending:false}),
   db.from("manual_grades").select("*").order("created_at",{ascending:false}),
   getStudents()
@@ -1254,7 +1381,7 @@ async function resultsPage(){
   ${(examResults.data||[]).map(x=>`
    <div class="item">
     <b>الطالب:</b> ${esc(x.profiles?.full_name||studentName(x.student_id))}
-    <br><b>الامتحان:</b> ${esc(x.exams?.title||"امتحان")}
+    <br><b>الامتحان:</b> ${esc(x.exam_title||x.exams?.title||"امتحان سابق")}
     <br><b>الدرجة:</b> ${esc(x.score_points??"غير متاحة")} من ${esc(x.total_points??"غير متاحة")}
     <br><b>حالة النتيجة:</b>
     ${x.is_visible?'<span style="color:#55d69b">ظاهرة للطالب</span>':'<span style="color:#ffad55">مخفية عن الطالب</span>'}
@@ -1301,7 +1428,7 @@ async function myResultsPage(){
  if(!requireStudent())return;
 
  const r=await db.from("exam_results")
-  .select("id,exam_id,score_points,total_points,submitted_at,exams(title)")
+  .select("id,exam_id,exam_title,score_points,total_points,submitted_at")
   .eq("student_id",user.id)
   .eq("is_visible",true)
   .order("submitted_at",{ascending:false});
@@ -1313,7 +1440,7 @@ async function myResultsPage(){
   <h3>نتائج الامتحانات</h3>
   ${(r.data||[]).map(x=>`
    <div class="item">
-    <b>${esc(x.exams?.title||"امتحان")}</b>
+    <b>${esc(x.exam_title||"امتحان سابق")}</b>
     <br>الدرجة: ${esc(x.score_points??"—")} من ${esc(x.total_points??"—")}
     <br><span class="small">${esc(x.submitted_at||"")}</span>
    </div>
